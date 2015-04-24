@@ -2,10 +2,10 @@ bold=`tput bold`
 normal=`tput sgr0`
 
 echo -e "${bold}NAME${normal}"
-echo -e "\tpost_production.sh\n"
+echo -e "\tlm_post_production.sh\n"
 
 echo -e "${bold}SYNOPSIS${normal}"
-echo -e "\tpost_production.sh --help | --dryrun | --convert\n"
+echo -e "\tlm_post_production.sh --help | --dryrun | --convert\n"
 
 echo -e "${bold}DESCRIPTION${normal}"
 echo -e "\tPut this script in your own folder in '1_export'. It converts 
@@ -21,10 +21,10 @@ echo -e "\tBefore that, its submodules in 'modules/' remove unwanted
 echo -e "${bold}OPTIONS${normal}"
 echo -e "\t-h / --help"
 echo -e "\t\tDisplay this help.\n"
-echo -e "\t-c / --convert"
-echo -e "\t\tRun this script.\n"
 echo -e "\t-d / --dryrun"
 echo -e "\t\tStarts a testrun that only collects 'sf'-errors in 'error.log'\n"
+echo -e "\t-c / --convert"
+echo -e "\t\tRun this script and convert files.\n"
 
 echo -e "${bold}AUTHOR${normal}"
 echo -e "\tWritten by Kristian Kißling\n"
