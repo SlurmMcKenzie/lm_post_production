@@ -35,6 +35,9 @@ elif [ "$1" == "-d" ] || [ "$1" == "--dryrun" ]; then
                 # this module removes dvd boxes that make no sense online
                 . ${bin_dir}/lm_post_production_modules/mod_remove_dvd_box.sh
                 
+                # repair errors for xml export
+                #. ${bin_dir}/lm_post_production_modules/mod_check_xml_sanity.sh
+                
                 # check converted 'txt'-articles in firefox
                 . ${bin_dir}/lm_post_production_modules/mod_html_check.sh
                 
@@ -90,6 +93,9 @@ elif [ "$1" == "-c" ] || [ "$1" == "--convert" ]; then
                 # after everything is fine with article.txt, start extracting the listings
                 . ${bin_dir}/lm_post_production_modules/mod_extract_listings.sh
 
+                # repair errors for xml export
+                . ${bin_dir}/lm_post_production_modules/mod_check_xml_sanity.sh
+                
                 # go back in your subfolder, for example "kki"
                 cd ..
                 
