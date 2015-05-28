@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This script converts all your "article.txt" files to html-format. 
+# This script converts all your "article.txt" files to html-format.
 # for this, you have to put all your articles in one subfolder and start this script from there
 # Then it converts all listings
 # TODO Sanity Checks
@@ -20,53 +20,56 @@ elif [ "$1" == "-d" ] || [ "$1" == "--dryrun" ]; then
     # check, if location is your own subfolder in "1_export", for example "kki"
     echo -e "Starting a dry run now. Converts, but then deletes listings, collects errors in 'error.log'"
     if [ -d ${exportpath} ]; then
-        
+
         # make error.log for sf if non-existing
         if [ -f ${working_dir}/error.log ]; then
             touch ${working_dir}/error.log
             chmod a+x ${working_dir}/error.log
         fi
-        
+
         ## Insert modules
         # List folders with leading digits and dive into it
         for folder in $(ls -d [[:digit:]]*); do
             if [ -d ${working_dir}/${folder} ]; then
                 cd ${working_dir}/${folder}
-                # this module removes dvd boxes that make no sense online
-                . ${bin_dir}/lm_post_production_modules/mod_remove_dvd_box.sh
-                
-                # repair errors for xml export
-                #. ${bin_dir}/lm_post_production_modules/mod_check_xml_sanity.sh
-                
+                echo -e "\nNext article:"${folder}
+                echo -e "================================"
                 # check converted 'txt'-articles in firefox
                 . ${bin_dir}/lm_post_production_modules/mod_html_check.sh
-                
+
+                # this module removes dvd boxes that make no sense online
+                . ${bin_dir}/lm_post_production_modules/mod_remove_dvd_box.sh
+
+                # repair errors for xml export
+                #. ${bin_dir}/lm_post_production_modules/mod_check_xml_sanity.sh
+
                 # possible dry run of listing generation here
                 #. ../modules/mod_extract_listings.sh
                 #cd ..
                 #rm -fR listings 2>&1
                 #cd ..
-                
+
                 # go back in your subfolder, for example "kki"
-                cd ..
-            fi
-        done
-        while true
+                while true
                     do
-                    read -p "Do you want to look at the 'error.log' now? [y/n]" error
+                    read -p "Do you want to change something on the article and take a look at the 'error.log' now? [y/n]" error
                         case ${error} in
                         y)
+                            vim article.txt
                             cat ${working_dir}/error.log | more
                             rm ${working_dir}/error.log
                             exit 0
                             ;;
                         *)
-                            echo -e "Test run finished!"
+                            echo -e "Test run finished, move to the next article!"
                             rm ${working_dir}/error.log
                             exit 0
                             ;;
                         esac
                     done
+                cd ..
+            fi
+        done
     else
         exit 0
     fi
@@ -75,13 +78,13 @@ elif [ "$1" == "-d" ] || [ "$1" == "--dryrun" ]; then
 elif [ "$1" == "-c" ] || [ "$1" == "--convert" ]; then
     # check, if location is your own subfolder in "1_export", for example "kki"
     if [ -d ${exportpath} ]; then
-        
+
         # make error.log for sf if non-existing
         if [ -f ${working_dir}/error.log ]; then
             touch ${working_dir}/error.log
             chmod a+x ${working_dir}/error.log
         fi
-        
+
         ## Insert modules
         #
         # list folders and ls into it one by one
@@ -89,16 +92,16 @@ elif [ "$1" == "-c" ] || [ "$1" == "--convert" ]; then
         for folder in $(ls -d [[:digit:]]*); do
             if [ -d ${working_dir}/${folder} ]; then
                 cd ${working_dir}/${folder}
-                
+
                 # after everything is fine with article.txt, start extracting the listings
                 . ${bin_dir}/lm_post_production_modules/mod_extract_listings.sh
 
                 # repair errors for xml export
                 . ${bin_dir}/lm_post_production_modules/mod_check_xml_sanity.sh
-                
+
                 # go back in your subfolder, for example "kki"
                 cd ..
-                
+
                 # check for $target_folder and move finalized folders there
                 . ${bin_dir}/lm_post_production_modules/mod_move_finalized_folder.sh
             fi
