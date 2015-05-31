@@ -21,5 +21,3 @@ arg1=$(grep -e '@V:.*<C>' -e '@KT:.*<C>' -e '@TT:.*<C>' -e '@ZT:.*<C>' article.t
 		-e '/@ZT/s/<C>/\"/g' article.txt
 	fi
 echo "Done."
-
-echo "Sorting picture tags in News"
