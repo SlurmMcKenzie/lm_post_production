@@ -9,7 +9,7 @@ working_dir=$(pwd)
 bin_dir="/opt/lnm/bin"
 exportpath=${working_dir}"/../../1_export"
 target_folder=${working_dir}"/../../2_checked"
-
+editor=/usr/bin/gedit
 
 ## SHOW HELP SECTION
 if [ "$1" == "" ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
@@ -48,28 +48,38 @@ elif [ "$1" == "-d" ] || [ "$1" == "--dryrun" ]; then
                 #cd ..
                 #rm -fR listings 2>&1
                 #cd ..
-
-                # go back in your subfolder, for example "kki"
                 while true
                     do
-                    read -p "Do you want to change something on the article and take a look at the 'error.log' now? [y/n]" error
+                    read -p "Do you want to change something on the article and/or take a look at the 'error.log' now? [y/n]" error
                         case ${error} in
                         y)
-                            vim article.txt
+                            ${editor} article.txt &&
+                            echo -e "\n"
                             cat ${working_dir}/error.log | more
                             rm ${working_dir}/error.log
-                            exit 0
+                            read -p "Move on to the next article? [y/n]" moveon
+                                case ${moveon} in
+                                y)
+                                    break
+                                    ;;
+                                *)
+                                    exit 0
+                                    ;;
+                                esac
+                            break
                             ;;
                         *)
                             echo -e "Test run finished, move to the next article!"
                             rm ${working_dir}/error.log
-                            exit 0
+                            break
                             ;;
                         esac
                     done
+                # go back in your subfolder, for example "kki"
                 cd ..
             fi
         done
+        echo -e "\nIf all articles look fine, you should now call 'lm_post_production -c' to convert them, extract listings and so on.\n"
     else
         exit 0
     fi
@@ -102,7 +112,7 @@ elif [ "$1" == "-c" ] || [ "$1" == "--convert" ]; then
                 # go back in your subfolder, for example "kki"
                 cd ..
 
-                # check for $target_folder and move finalized folders there
+                # check if $target_folder exists and move just finalized $folder there
                 . ${bin_dir}/lm_post_production_modules/mod_move_finalized_folder.sh
             fi
         done
