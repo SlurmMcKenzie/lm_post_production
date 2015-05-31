@@ -34,20 +34,14 @@ elif [ "$1" == "-d" ] || [ "$1" == "--dryrun" ]; then
                 cd ${working_dir}/${folder}
                 echo -e "\nNext article:"${folder}
                 echo -e "================================"
+
+                # repair errors for xml export
+                . ${bin_dir}/lm_post_production_modules/mod_check_xml_sanity.sh
+                # this module removes dvd boxes that make no sense online
+                . ${bin_dir}/lm_post_production_modules/mod_remove_dvd_box.sh
                 # check converted 'txt'-articles in firefox
                 . ${bin_dir}/lm_post_production_modules/mod_html_check.sh
 
-                # this module removes dvd boxes that make no sense online
-                . ${bin_dir}/lm_post_production_modules/mod_remove_dvd_box.sh
-
-                # repair errors for xml export
-                #. ${bin_dir}/lm_post_production_modules/mod_check_xml_sanity.sh
-
-                # possible dry run of listing generation here
-                #. ../modules/mod_extract_listings.sh
-                #cd ..
-                #rm -fR listings 2>&1
-                #cd ..
                 while true
                     do
                     read -p "Do you want to change something on the article and/or take a look at the 'error.log' now? [y/n]" error
@@ -102,10 +96,6 @@ elif [ "$1" == "-c" ] || [ "$1" == "--convert" ]; then
         for folder in $(ls -d [[:digit:]]*); do
             if [ -d ${working_dir}/${folder} ]; then
                 cd ${working_dir}/${folder}
-
-                # repair errors for xml export
-                . ${bin_dir}/lm_post_production_modules/mod_check_xml_sanity.sh
-
                 # after everything is fine with article.txt, start extracting the listings
                 . ${bin_dir}/lm_post_production_modules/mod_extract_listings.sh
 

@@ -5,8 +5,9 @@ echo "Repairing file for XML-Export"
 echo "<C> -> <code>"
 
 # TODO: Was ist, wenn es mehrere <C>-Tags gibt? Anpassen!
+# TODO: In Kästen dürfen bei Programmnamen C-Tags stehen
 
-arg1=$(grep -e '@V:.*<C>' -e '@KT:.*<C>' -e '@TT:.*<C>' -e '@ZT:.*<C>' article.txt)
+arg1=$(grep -e '@V:.*<C>' -e '@TT:.*<C>' -e '@ZT:.*<C>' article.txt)
 	if [ -z "${arg1}" ] ; then
 		echo "Keine deplazierten Code-Tags gefunden."
 	else
@@ -15,8 +16,6 @@ arg1=$(grep -e '@V:.*<C>' -e '@KT:.*<C>' -e '@TT:.*<C>' -e '@ZT:.*<C>' article.t
 		-e '/@V/s/<C>/\"/g' \
 		-e '/@TT/s/<C>/\"/g' \
 		-e '/@TT/s/<C>/\"/g' \
-		-e '/@KT/s/<C>/\"/g' \
-		-e '/@KT/s/<C>/\"/g' \
 		-e '/@ZT/s/<C>/\"/g' \
 		-e '/@ZT/s/<C>/\"/g' article.txt
 	fi
