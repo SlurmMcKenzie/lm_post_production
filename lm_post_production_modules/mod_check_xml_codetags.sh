@@ -18,5 +18,7 @@ arg1=$(grep -e '@V:.*<C>' -e '@TT:.*<C>' -e '@ZT:.*<C>' article.txt)
 		-e '/@TT/s/<C>/\"/g' \
 		-e '/@ZT/s/<C>/\"/g' \
 		-e '/@ZT/s/<C>/\"/g' article.txt
+		echo -e "Repeat XML conversion."
+		# Put XML conversion here
 	fi
 echo "Done."

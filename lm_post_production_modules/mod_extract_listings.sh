@@ -1,7 +1,7 @@
 availa=$(grep "@KT:Listing 1" article.txt)
 availb=$(grep "@KT: Listing 1" article.txt)
 
-# generate listings, throw stdout and stderr away
+# generate listings, discard stdout and stderr
 
 if [ "$availa" ] || [ "$availb" ]; then
     echo -e "Found listings in" ${folder}", converting now, stay tuned..."

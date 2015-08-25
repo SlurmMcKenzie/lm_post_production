@@ -5,10 +5,23 @@
 # Then it converts all listings
 # TODO Sanity Checks
 
+# ONLY FOR TEST PURPOSES, DO NOT USE IN PRODUCTION
+function encoding_conversion {
+	if [ $(file article.txt | grep -o "UTF-8") ]; then
+		echo "Keine Umwandlung nötig."
+		continue
+	else
+		echo "Konversion gestartet."
+		iconv -f ISO-8859-15 -t UTF-8 -o article.txt article.txt
+	fi
+}
+
 working_dir=$(pwd)
 bin_dir="/opt/lnm/bin"
 exportpath=${working_dir}"/../../1_export"
 target_folder=${working_dir}"/../../2_checked"
+issue_year=$(pwd | grep -o "[2][0][0-9][0-9]")
+issue_month=$(pwd | grep -o "[2][0][0-9][0-9]..." | tail -c 3)
 editor=/usr/bin/gedit
 
 ## SHOW HELP SECTION
@@ -18,7 +31,8 @@ if [ "$1" == "" ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 ## DRYRUN
 elif [ "$1" == "-d" ] || [ "$1" == "--dryrun" ]; then
     # check, if location is your own subfolder in "1_export", for example "kki"
-    echo -e "Starting a dry run now. Converts, but then deletes listings, collects errors in 'error.log'"
+    echo -e "Now you may check all your 'article.txt' in a row. If you find errors in your HTML view, you can correct those in an editor of your choice. Afterwards you can convert all listings and move the result to '2_checked'"
+    sleep 2
     if [ -d ${exportpath} ]; then
 
         # make error.log for sf if non-existing
@@ -35,10 +49,10 @@ elif [ "$1" == "-d" ] || [ "$1" == "--dryrun" ]; then
                 echo -e "\nNext article:"${folder}
                 echo -e "================================"
 
-                # repair errors for xml export
-                . ${bin_dir}/lm_post_production_modules/mod_check_xml_sanity.sh
                 # this module removes dvd boxes that make no sense online
-                . ${bin_dir}/lm_post_production_modules/mod_remove_dvd_box.sh
+                . ${bin_dir}/lm_post_production_modules/mod_remove_dvd_boxes.sh
+                # this module removes dvd boxes that make no sense online
+                . ${bin_dir}/lm_post_production_modules/mod_remove_inhalt_boxes.sh
                 # check converted 'txt'-articles in firefox
                 . ${bin_dir}/lm_post_production_modules/mod_html_check.sh
 
@@ -73,7 +87,7 @@ elif [ "$1" == "-d" ] || [ "$1" == "--dryrun" ]; then
                 cd ..
             fi
         done
-        echo -e "\nIf all articles look fine, you should now call 'lm_post_production -c' to extract listings and prepare files for a proper xml export.\n"
+        echo -e "\nIf all articles look fine, you should now call 'lm_post_production -c' to extract listings and prepare files for a proper XML export.\n"
     else
         exit 0
     fi
@@ -108,6 +122,52 @@ elif [ "$1" == "-c" ] || [ "$1" == "--convert" ]; then
         done
     else
         echo "You need to create a subfolder in '1_export' and start this script from there."
+        exit 0
+    fi
+
+# convert XML files to reduce XML errors
+elif [ "$1" == "-x" ] || [ "$1" == "--xml" ]; then
+    # check, if location is in "2_checked"
+    if [ -d ${target_folder} ]; then
+        ## Insert modules
+        if [ "ls -A ${target_folder}" ]; then
+			# change into '2_checked'
+			cd ${target_folder}
+			
+		# repair things before conversion starts
+		# list folders in '2_checked' and ls into it one by one
+			for folder in $(ls -d [0-9][0-9][0-9]*); do
+				if [ -d ${target_folder}/${folder} ]; then 
+					cd ${target_folder}/${folder}
+					. ${bin_dir}/lm_post_production_modules/mod_check_xml_zut.sh
+					. ${bin_dir}/lm_post_production_modules/mod_check_xml_news.sh
+					#. ${bin_dir}/lm_post_production_modules/mod_check_xml_buecher.sh
+				else
+					echo "No folder in '2_checked' starts with digits."
+				fi
+			done
+			cd ..
+		else
+			echo -e "No folder found in '2_checked'."
+		fi
+		# convert2xml.sh -y 2015 -i 03 -m LM
+		
+		pwd
+		ls -d [0-9][0-9][0-9]*
+						
+		read -p "Convert all articles to XML - and remove XML files afterwards? [y/n]" yesyoucan
+							case ${yesyoucan} in
+							y | j)
+								convert2xml.sh -y ${issue_year} -i ${issue_month} -m LM
+								exit 0
+								;;
+							*)
+								echo -e ${issue_year} ${issue_month}
+								exit 0
+								;;
+							esac
+    else
+        echo "This option only works if you call it from '1_export/<your_folder>'. It prepares existing XML files for the upload to our website."
         exit 0
     fi
 fi
