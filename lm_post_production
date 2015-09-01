@@ -1,10 +1,5 @@
 #!/bin/bash
 
-# This script converts all your "article.txt" files to html-format.
-# for this, you have to put all your articles in one subfolder and start this script from there
-# Then it converts all listings
-# TODO Sanity Checks
-
 # ONLY FOR TEST PURPOSES, DO NOT USE IN PRODUCTION
 function encoding_conversion {
 	if [ $(file article.txt | grep -o "UTF-8") ]; then
@@ -16,13 +11,18 @@ function encoding_conversion {
 	fi
 }
 
+# This script converts all your "article.txt" files to html-format.
+# for this, you have to put all your articles in one subfolder and start this script from there
+# Then it converts all listings
+# TODO Sanity Checks
+
 working_dir=$(pwd)
 bin_dir="/opt/lnm/bin"
 exportpath=${working_dir}"/../../1_export"
 target_folder=${working_dir}"/../../2_checked"
 issue_year=$(pwd | grep -o "[2][0][0-9][0-9]")
 issue_month=$(pwd | grep -o "[2][0][0-9][0-9]..." | tail -c 3)
-editor=/usr/bin/gedit
+editor=/usr/bin/nano
 
 ## SHOW HELP SECTION
 if [ "$1" == "" ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
@@ -48,23 +48,44 @@ elif [ "$1" == "-d" ] || [ "$1" == "--dryrun" ]; then
                 cd ${working_dir}/${folder}
                 echo -e "\nNext article:"${folder}
                 echo -e "================================"
-
-                # this module removes dvd boxes that make no sense online
+                
+                set -x
+                
+                # this module removes "Heft-DVD" boxes that make no sense online
                 . ${bin_dir}/lm_post_production_modules/mod_remove_dvd_boxes.sh
-                # this module removes dvd boxes that make no sense online
+                # this module removes "DELUG-DVD" boxes that make no sense online
+                . ${bin_dir}/lm_post_production_modules/mod_remove_delug_boxes.sh
+                # this module removes "Inhalt" boxes that make no sense online
                 . ${bin_dir}/lm_post_production_modules/mod_remove_inhalt_boxes.sh
+                # Remove double CD picture in "SW-Einführung"
+                . ${bin_dir}/lm_post_production_modules/mod_remove_double_title.sh
+                # Remove Comments in all texts
+                . ${bin_dir}/lm_post_production_modules/mod_remove_comments.sh
+                # Converts infolistings into Boxes in article "Bücher"
+                . ${bin_dir}/lm_post_production_modules/mod_check_buecher.sh
+                # Replaces Dachzeile und Titel in "Leserbriefe"
+                . ${bin_dir}/lm_post_production_modules/mod_check_leserbriefe.sh
+                # changes places for figures copyright notices and titles
+                . ${bin_dir}/lm_post_production_modules/mod_check_zut.sh
+                . ${bin_dir}/lm_post_production_modules/mod_check_news.sh
+                # check for broken footnotes
+                . ${bin_dir}/lm_post_production_modules/mod_check_footnotes.sh
                 # check converted 'txt'-articles in firefox
                 . ${bin_dir}/lm_post_production_modules/mod_html_check.sh
-
+                
+                set +x
+                
                 while true
                     do
                     read -p "Do you want to change something on the article and/or take a look at the 'error.log' now? [y/n]" error
                         case ${error} in
-                        y)
-                            ${editor} article.txt &&
-                            echo -e "\n"
+                        y)                            
                             cat ${working_dir}/error.log | more
+                            echo -e "\n"
+                            echo "Starting Editor..." 
                             rm ${working_dir}/error.log
+                            sleep 2
+                            ${editor} article.txt &&
                             read -p "Move on to the next article? [y/n]" moveon
                                 case ${moveon} in
                                 y)
@@ -125,7 +146,7 @@ elif [ "$1" == "-c" ] || [ "$1" == "--convert" ]; then
         exit 0
     fi
 
-# convert XML files to reduce XML errors
+# CONVERT TXT TO XML AND CHANGE XML FILES
 elif [ "$1" == "-x" ] || [ "$1" == "--xml" ]; then
     # check, if location is in "2_checked"
     if [ -d ${target_folder} ]; then
@@ -134,38 +155,33 @@ elif [ "$1" == "-x" ] || [ "$1" == "--xml" ]; then
 			# change into '2_checked'
 			cd ${target_folder}
 			
+            # show all folders an start conversion
+            ls -d [0-9][0-9][0-9]*
+        
+            read -p "Convert all listed articles to XML - and repair XML files afterwards? [y/n]" yesyoucan
+                case ${yesyoucan} in
+                y | j)
+                    . ${bin_dir}/convert2xml.sh -y ${issue_year} -i ${issue_month} -m LM
+                    echo "Converted all articles to XML-files."
+                    ;;
+                *)
+                    exit 0
+                    ;;
+                esac
+            
 		# repair things before conversion starts
 		# list folders in '2_checked' and ls into it one by one
 			for folder in $(ls -d [0-9][0-9][0-9]*); do
 				if [ -d ${target_folder}/${folder} ]; then 
 					cd ${target_folder}/${folder}
-					. ${bin_dir}/lm_post_production_modules/mod_check_xml_zut.sh
-					. ${bin_dir}/lm_post_production_modules/mod_check_xml_news.sh
-					#. ${bin_dir}/lm_post_production_modules/mod_check_xml_buecher.sh
+                    . ${bin_dir}/lm_post_production_modules/mod_check_xml_restricted.sh
 				else
-					echo "No folder in '2_checked' starts with digits."
+					echo "No relevant folder found in '2_checked'."
 				fi
 			done
-			cd ..
 		else
 			echo -e "No folder found in '2_checked'."
 		fi
-		# convert2xml.sh -y 2015 -i 03 -m LM
-		
-		pwd
-		ls -d [0-9][0-9][0-9]*
-						
-		read -p "Convert all articles to XML - and remove XML files afterwards? [y/n]" yesyoucan
-							case ${yesyoucan} in
-							y | j)
-								convert2xml.sh -y ${issue_year} -i ${issue_month} -m LM
-								exit 0
-								;;
-							*)
-								echo -e ${issue_year} ${issue_month}
-								exit 0
-								;;
-							esac
     else
         echo "This option only works if you call it from '1_export/<your_folder>'. It prepares existing XML files for the upload to our website."
         exit 0

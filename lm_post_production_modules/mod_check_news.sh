@@ -2,10 +2,10 @@
 
 newsfile=article.txt
 
-arg1=$(grep -e '@SW:News' article.txt)
-arg2=$(grep -e '@SW: News' article.txt)
+var1=$(grep -e '@SW:News' ${newsfile})
+var2=$(grep -e '@SW: News' ${newsfile})
 
-if [ "${arg1}" ] || [ "${arg2}" ] ; then
+if [ "${var1}" ] || [ "${var2}" ] ; then
 	countr=$(grep -c '^@BC:' ${newsfile})
 	echo -e "Found News file, rearrange picture order if needed."
     for i in $(seq 1 ${countr}); do
