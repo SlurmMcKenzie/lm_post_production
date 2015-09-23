@@ -1,44 +1,245 @@
 #!/bin/bash
 
-# ONLY FOR TEST PURPOSES, DO NOT USE IN PRODUCTION
-function encoding_conversion {
-	if [ $(file article.txt | grep -o "UTF-8") ]; then
-		echo "Keine Umwandlung nötig."
-		continue
-	else
-		echo "Konversion gestartet."
-		iconv -f ISO-8859-15 -t UTF-8 -o article.txt article.txt
-	fi
-}
-
 # This script converts all your "article.txt" files to html-format.
 # for this, you have to put all your articles in one subfolder and start this script from there
 # Then it converts all listings
 # TODO Sanity Checks
 
+# Filenames
+article=article.txt
+error_log=error.log
+article_html=article.html
+satzfertig=sf
+
+# Path Variables
 working_dir=$(pwd)
 bin_dir="/opt/lnm/bin"
 exportpath=${working_dir}"/../../1_export"
 target_folder=${working_dir}"/../../2_checked"
+editor=/usr/bin/gedit
+browser=/usr/bin/firefox
+
+
+# Magazine Issue
 issue_year=$(pwd | grep -o "[2][0][0-9][0-9]")
 issue_month=$(pwd | grep -o "[2][0][0-9][0-9]..." | tail -c 3)
-editor=/usr/bin/nano
 
-## SHOW HELP SECTION
-if [ "$1" == "" ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
-    . ${bin_dir}/lm_post_production_modules/mod_get_header.sh
+##  Module: DISPLAY HELPFILE FOR THE PROGRAM ##
 
-## DRYRUN
-elif [ "$1" == "-d" ] || [ "$1" == "--dryrun" ]; then
+function get_help {
+    bold=`tput bold`
+    normal=`tput sgr0`
+
+    echo -e "${bold}NAME${normal}"
+    echo -e "\tlm_post_production.sh\n"
+
+    echo -e "${bold}SYNOPSIS${normal}"
+    echo -e "\tlm_post_production.sh --help | --dryrun | --convert | --xml\n"
+
+    echo -e "${bold}DESCRIPTION${normal}"
+    echo -e "\tPut this script in your own folder in '1_export'. It converts 
+    \t'.txt' into '.html' files, logs error messages in 'error.log'. And
+    \t it can generates XML files.\n"
+
+    echo -e "\tIts submodules in 'modules/' remove unwanted artefacts.
+    \tFor every article the script displays the converted '.html' file in 
+    \tin Firefox (-d). If that looks alright the script will extract all
+    \tlistings and move the whole folder including the listings to
+    \t'2_checked' (-c). Finally it generates XML files and repairs some
+    \tdetails in those (-x).\n"
+
+    echo -e "${bold}OPTIONS${normal}"
+    echo -e "\t-h / --help"
+    echo -e "\t\tDisplay this help.\n"
+    echo -e "\t-d / --dryrun"
+    echo -e "\t\tStarts a testrun that only collects 'sf'-errors in 'error.log'\n"
+    echo -e "\t-c / --convert"
+    echo -e "\t\tRun this script and convert files.\n"
+    echo -e "\t-x / --xml"
+    echo -e "\t\tConverts HTML to XML files. Shows errors and prepares XML for upload.\n"
+
+    echo -e "${bold}AUTHOR${normal}"
+    echo -e "\tWritten by Kristian Kißling\n"
+
+    echo -e "${bold}REPORTING BUGS${normal}"
+    echo -e "\tBug Reports to kkissling@linux-magazin.de\n"
+
+    echo -e "${bold}COPYRIGHT${normal}"
+    echo -e "\tLicense: GNU Public License v2."
+    echo -e "\tThis is free software: you are free  to  change  and  redistribute  it.
+    \tThere is NO WARRANTY, to the extent permitted by law."
+}
+
+
+##  Module: REMOVE UNWANTED BOXES ##
+
+function mod_remove_boxes {
+startbox=$(grep -n -e "^@KT:*Inhalt\|@KT:*D[eE][lL][uU][gG]\|@KT:*H[Ee][fF][tT]-DVD" ${article} | cut -d ":" -f1)
+endbox=$(grep -n -e "^@KE" ${article} | cut -d ":" -f1)
+    if [ "${startbox}" ]; then
+        for i in ${startbox}; do
+            for j in ${endbox}; do
+                if [ "${j}" -gt "${i}" ]; then
+                    echo -e "\n8<----------"
+                    sed ${i},${j}'!d' ${article} | tr "[:space:]" " "
+                    echo -e "\n---------->8\n"
+                    while true
+                        do
+                            read -p "This textbox is not needed anymore. Delete? [y/n]" delete
+                            case ${delete} in
+                                y)
+                                    sed -i ${i},${j}'d' ${article}
+                                    echo "Box deleted."
+                                    mod_remove_boxes
+                            ;;
+                                n)
+                                    echo "Box not changed."
+                                    break
+                            ;;
+                                *)
+                                    echo "Please type only [y] or [n]."
+                            esac
+                        done
+                    break
+                fi
+            done
+        done
+    else
+        return
+    fi
+}
+
+
+##  Module: REMOVE DUPLICATE TITLE PICTURES ##
+#   removes duplicate title pics in "sw_einf"
+
+function mod_remove_duplicate {
+
+keyword=$(grep -e '@SW:*Einf.hrung' ${article})
+category=$(grep -e '@R:*Software' ${article})
+dupimage=$(grep -c 'DVDgold' ${article})
+secimage=$(grep -e 'DVDgold' ${article} | tail -1)
+
+    if { [ ${keyword} ] && [ ${category} ] ;} && [ ${dupimage} == 2 ]; then
+        # use "|" instead of "/" als delimiter because of path in secimage
+        sed -i "s|$secimage||g" ${article}
+    fi
+}
+
+
+##  Module: REMOVE ALL COMMENTS EXCEPT THE ONE WITH ID ##
+
+function mod_remove_comments {
+
+# Deletes every comment except that @#:ID:...
+# '/Delete this/ {/Apart from that/! d}'
+sed -e '/^@#.*$/ {/^@#:ID.*$/! d}' ${article} > temp.txt &&
+mv temp.txt article.txt
+rm temp.txt
+}
+
+
+## Module: REPLACE BOXES IN BOOK ARTICLE ##
+
+function mod_replace_bookbox {
+
+buecher=$(grep -e '@SW:*B.cher' ${article})
+infobox=$(grep -c '^@IT:.*Info' ${article})
+
+if [ "${buecher1}" ] && [ "${infobox}" == 2 ]; then
+	echo -e "Found Boxes in article on books, rearrange numbers for XML conversion."
+    sed -i '0,/IT\:.*fo$/s//KT:Info 1/; /IT\:.*fo$/s//KT:Info 2/' ${article}
+    sed -i 's/@IL:/@KL:/g' ${article}
+fi
+}
+
+
+## Module: FILL OUT HEADER LINE IN LETTERS TO THE EDITOR ##
+
+function mod_prepare_ed_letter {
+
+leserbriefe=$(grep -e '@SW:*Leserbriefe' ${article})
+dachzeile=$(grep -e '@D: *$' ${article})
+
+if [ "${leserbriefe}" ] && [ "${dachzeile}" ]; then
+    sed -i 's/@D:/@D:Auf den Punkt gebracht/g' ${article}
+    sed -i 's/@T:/@T:Leserbriefe/g' ${article}
+fi
+}
+
+
+## Module: CHANGE PIC ORDER IN NEWS AND ZUT ##
+# Needed for XML Upload
+
+function mod_prepare_pics_news_zut {
+
+news=$(grep -e '@SW: *News' ${article})
+zut=$(grep -e '@SW: *Zahlen & Trends' ${article})
+
+if [ "${news}" ] || [ "${zut}" ] ; then
+	countr=$(grep -c '^@BC:' ${article})
+	echo -e "Found News/ZuT file, rearrange picture order if needed."
+    for i in $(seq 1 ${countr}); do
+        # look for first matches, if several matches, only show last one
+        text=$(grep -o '@BC:.*$' -m ${i} ${article} | tail -n 1)
+        # look for first matches with line numbers, if several, cut and only show last line number
+        line=$(grep -n '@BC:' -m ${i} ${article} | cut -d ":" -f 1 | tail -n 1)
+        # show number of line before
+        line_before=$(($line-1))
+        # remember content of line before
+        text_before=$(grep -B 1 '@BC:.*$' -m ${i} ${article} | tail -n 2 | grep -o '@B:.*$')
+        if [ "${text_before}" ]; then
+            # now replace lines that start with @BC: with those that start with @B:
+            sed -i ''"${line_before}"'c'"${text}"'' ${article}
+            sed -i ''"${line}"'c'"${text_before}"'' ${article}
+        else
+            continue
+        fi
+    done
+fi
+}
+
+
+## MODULE: USE SATZFERTIG AND CHECK RESULT IN BROWSER ##
+
+function mod_html_check {
+
+# write sf stderr and stdout in error.log
+echo -e "## Start of error.log for:" ${folder} "##\n" >> ../${error_log}
+${bin_dir}/${satzfertig} -H ${article} ${article_html} >> ../${error_log} 2>&1 &&
+echo -e "\n## End of error.log for:" ${folder} "##\n" >> ../${error_log}
+
+# watch HTML File in $browser
+while true
+    do
+        read -p "Do you want to check the generated HTML file in a browser now? [y/n]" firefox
+        case ${firefox} in
+            y)
+                echo -e "Firefox ist starting right now, please check the 'article.html'."
+                ${browser} --safe-mode ${article_html} 2>&1
+                break
+                ;;
+            *)
+                break
+                ;;
+        esac
+    done
+}
+
+
+#####   Main: "-d" - START A DRYRUN #####
+#       Repairs all kinds of bugs before conversion and shows result
+
+function dryrun {
     # check, if location is your own subfolder in "1_export", for example "kki"
     echo -e "Now you may check all your 'article.txt' in a row. If you find errors in your HTML view, you can correct those in an editor of your choice. Afterwards you can convert all listings and move the result to '2_checked'"
     sleep 2
     if [ -d ${exportpath} ]; then
 
         # make error.log for sf if non-existing
-        if [ -f ${working_dir}/error.log ]; then
-            touch ${working_dir}/error.log
-            chmod a+x ${working_dir}/error.log
+        if [ ! -f ${working_dir}/${error_log} ]; then
+            touch ${working_dir}/${error_log}
+            chmod a+x ${working_dir}/${error_log}
         fi
 
         ## Insert modules
@@ -49,43 +250,27 @@ elif [ "$1" == "-d" ] || [ "$1" == "--dryrun" ]; then
                 echo -e "\nNext article:"${folder}
                 echo -e "================================"
                 
-                set -x
-                
                 # this module removes "Heft-DVD" boxes that make no sense online
-                . ${bin_dir}/lm_post_production_modules/mod_remove_dvd_boxes.sh
-                # this module removes "DELUG-DVD" boxes that make no sense online
-                . ${bin_dir}/lm_post_production_modules/mod_remove_delug_boxes.sh
-                # this module removes "Inhalt" boxes that make no sense online
-                . ${bin_dir}/lm_post_production_modules/mod_remove_inhalt_boxes.sh
-                # Remove double CD picture in "SW-Einführung"
-                . ${bin_dir}/lm_post_production_modules/mod_remove_double_title.sh
-                # Remove Comments in all texts
-                . ${bin_dir}/lm_post_production_modules/mod_remove_comments.sh
-                # Converts infolistings into Boxes in article "Bücher"
-                . ${bin_dir}/lm_post_production_modules/mod_check_buecher.sh
-                # Replaces Dachzeile und Titel in "Leserbriefe"
-                . ${bin_dir}/lm_post_production_modules/mod_check_leserbriefe.sh
-                # changes places for figures copyright notices and titles
-                . ${bin_dir}/lm_post_production_modules/mod_check_zut.sh
-                . ${bin_dir}/lm_post_production_modules/mod_check_news.sh
-                # check for broken footnotes
-                . ${bin_dir}/lm_post_production_modules/mod_check_footnotes.sh
-                # check converted 'txt'-articles in firefox
-                . ${bin_dir}/lm_post_production_modules/mod_html_check.sh
-                
-                set +x
-                
+                mod_remove_boxes
+                mod_remove_duplicate
+                mod_remove_comments
+                mod_replace_bookbox
+                mod_prepare_ed_letter
+                mod_prepare_pics_news_zut
+                mod_html_check
+                                
                 while true
                     do
                     read -p "Do you want to change something on the article and/or take a look at the 'error.log' now? [y/n]" error
                         case ${error} in
                         y)                            
-                            cat ${working_dir}/error.log | more
+                            echo "Error Log:"
+                            cat ${working_dir}/${error_log} | more
                             echo -e "\n"
                             echo "Starting Editor..." 
-                            rm ${working_dir}/error.log
+                            rm ${working_dir}/${error_log}
                             sleep 2
-                            ${editor} article.txt &&
+                            ${editor} ${article} &&
                             read -p "Move on to the next article? [y/n]" moveon
                                 case ${moveon} in
                                 y)
@@ -99,7 +284,7 @@ elif [ "$1" == "-d" ] || [ "$1" == "--dryrun" ]; then
                             ;;
                         *)
                             echo -e "Test run finished, move to the next article!"
-                            rm ${working_dir}/error.log
+                            rm ${working_dir}/${error_log}
                             break
                             ;;
                         esac
@@ -112,16 +297,19 @@ elif [ "$1" == "-d" ] || [ "$1" == "--dryrun" ]; then
     else
         exit 0
     fi
+}
 
-## CONVERT LISTINGS AND MOVE FOLDERS
-elif [ "$1" == "-c" ] || [ "$1" == "--convert" ]; then
+
+##### Main: "-c" - CONVERT LISTINGS AND MOVE FOLDERS #######
+
+function convert {
     # check, if location is your own subfolder in "1_export", for example "kki"
     if [ -d ${exportpath} ]; then
 
         # make error.log for sf if non-existing
-        if [ -f ${working_dir}/error.log ]; then
-            touch ${working_dir}/error.log
-            chmod a+x ${working_dir}/error.log
+        if [ -f ${working_dir}/${error_log} ]; then
+            touch ${working_dir}/${error_log}
+            chmod a+x ${working_dir}/${error_log}
         fi
 
         ## Insert modules
@@ -145,16 +333,17 @@ elif [ "$1" == "-c" ] || [ "$1" == "--convert" ]; then
         echo "You need to create a subfolder in '1_export' and start this script from there."
         exit 0
     fi
+}
 
 # CONVERT TXT TO XML AND CHANGE XML FILES
-elif [ "$1" == "-x" ] || [ "$1" == "--xml" ]; then
+function xml {
     # check, if location is in "2_checked"
     if [ -d ${target_folder} ]; then
         ## Insert modules
         if [ "ls -A ${target_folder}" ]; then
-			# change into '2_checked'
-			cd ${target_folder}
-			
+            # change into '2_checked'
+            cd ${target_folder}
+            
             # show all folders an start conversion
             ls -d [0-9][0-9][0-9]*
         
@@ -169,21 +358,35 @@ elif [ "$1" == "-x" ] || [ "$1" == "--xml" ]; then
                     ;;
                 esac
             
-		# repair things before conversion starts
-		# list folders in '2_checked' and ls into it one by one
-			for folder in $(ls -d [0-9][0-9][0-9]*); do
-				if [ -d ${target_folder}/${folder} ]; then 
-					cd ${target_folder}/${folder}
+        # repair things before conversion starts
+        # list folders in '2_checked' and ls into it one by one
+            for folder in $(ls -d [0-9][0-9][0-9]*); do
+                if [ -d ${target_folder}/${folder} ]; then 
+                    cd ${target_folder}/${folder}
                     . ${bin_dir}/lm_post_production_modules/mod_check_xml_restricted.sh
-				else
-					echo "No relevant folder found in '2_checked'."
-				fi
-			done
-		else
-			echo -e "No folder found in '2_checked'."
-		fi
+                else
+                    echo "No relevant folder found in '2_checked'."
+                fi
+            done
+        else
+            echo -e "No folder found in '2_checked'."
+        fi
     else
         echo "This option only works if you call it from '1_export/<your_folder>'. It prepares existing XML files for the upload to our website."
         exit 0
     fi
-fi
+}
+
+function start {
+    if [ "${1}" == "" ] || [ "${1}" == "-h" ] || [ "${1}" == "--help" ]; then
+        get_help
+    elif [ "${1}" == "-d" ] || [ "${1}" == "--dryrun" ]; then
+        dryrun
+    elif [ "${1}" == "-c" ] || [ "${1}" == "--convert" ]; then
+        convert
+    elif [ "${1}" == "-x" ] || [ "${1}" == "--xml" ]; then
+        xml
+    fi
+}
+
+start "${1}"
