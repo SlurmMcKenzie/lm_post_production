@@ -10,6 +10,7 @@ article=article.txt
 error_log=error.log
 article_html=article.html
 satzfertig=sf
+iconv=/usr/bin/iconv
 
 # Path Variables
 working_dir=$(pwd)
@@ -19,14 +20,32 @@ target_folder=${working_dir}"/../../2_checked"
 editor=/usr/bin/gedit
 browser=/usr/bin/firefox
 
-
 # Magazine Issue
 issue_year=$(pwd | grep -o "[2][0][0-9][0-9]")
 issue_month=$(pwd | grep -o "[2][0][0-9][0-9]..." | tail -c 3)
 
+## Convert article.txt to UTF-8 otherwise script breaks
+ 
+function convert_to_utf8 {
+    
+    ${iconv} -f ISO-8859-15 -t UTF-8 ${article} -o ${article}
+
+}
+
+
+## Convert article.txt back to ISO-8859-15
+
+function convert_to_iso8859_15 {
+    
+    ${iconv} -f UTF-8 -t ISO-8859-15 ${article} -o ${article}
+
+}
+
+
 ##  Module: DISPLAY HELPFILE FOR THE PROGRAM ##
 
 function get_help {
+    
     bold=`tput bold`
     normal=`tput sgr0`
 
@@ -70,6 +89,11 @@ function get_help {
     \tThere is NO WARRANTY, to the extent permitted by law."
 }
 
+function strngs {
+    green='\033[0;32m'
+    noclr='\033[0m'
+    echo "Executing ${FUNCNAME}...${green}OK${noclr}"
+}
 
 ##  Module: REMOVE UNWANTED BOXES ##
 
@@ -77,6 +101,7 @@ function mod_remove_boxes {
 startbox=$(grep -n -e "^@KT:*Inhalt\|@KT:*D[eE][lL][uU][gG]\|@KT:*H[Ee][fF][tT]-DVD" ${article} | cut -d ":" -f1)
 endbox=$(grep -n -e "^@KE" ${article} | cut -d ":" -f1)
     if [ "${startbox}" ]; then
+        
         for i in ${startbox}; do
             for j in ${endbox}; do
                 if [ "${j}" -gt "${i}" ]; then
@@ -121,6 +146,7 @@ dupimage=$(grep -c 'DVDgold' ${article})
 secimage=$(grep -e 'DVDgold' ${article} | tail -1)
 
     if { [ ${keyword} ] && [ ${category} ] ;} && [ ${dupimage} == 2 ]; then
+        
         # use "|" instead of "/" als delimiter because of path in secimage
         sed -i "s|$secimage||g" ${article}
     fi
@@ -133,9 +159,14 @@ function mod_remove_comments {
 
 # Deletes every comment except that @#:ID:...
 # '/Delete this/ {/Apart from that/! d}'
-sed -e '/^@#.*$/ {/^@#:ID.*$/! d}' ${article} > temp.txt &&
-mv temp.txt article.txt
-rm temp.txt
+occurence=$(grep -c '^#' ${article})
+
+    if [ ${occurence} -gt "2" ]; then
+        
+        sed -e '/^@#.*$/ {/^@#:ID.*$/! d}' ${article} > temp.txt &&
+        mv temp.txt article.txt
+        rm temp.txt
+    fi    
 }
 
 
@@ -144,23 +175,24 @@ rm temp.txt
 function mod_prepare_edi {
 edi=$(grep -e '@R: *Editorial' ${article})
 
-if [ "${edi}" ]; then
-    upper_img=$(grep -n "@BA: *.*$" ${article} | cut -d ":" -f 1)
-    lower_img=$(grep -n "@BI: *.*$" ${article} | cut -d ":" -f 1)
-    lower_plus_one=$((${lower_img}+1))
-    upper_plus_one=$((${upper_img}+1))
-    
-    if [ "${lower_img}" -gt "${upper_img}" ]; then
-        upper=$(grep "@BA: *.*" ${article})
-        lower=$(grep "@BI: *.*" ${article})
-        lower_bu=$(grep "@B: *.*" ${article})
+    if [ "${edi}" ]; then
         
-        sed -i ''"${upper_img}"'c'"${lower}" ${article}
-        sed -i ''"${lower_img}"'c'"${upper}" ${article}
-        sed -i ''"${upper_plus_one}"'c'"${lower_bu}" ${article}
-        sed -i ''"${lower_plus_one}"'d' ${article}
+        upper_img=$(grep -n "@BA: *.*$" ${article} | cut -d ":" -f 1)
+        lower_img=$(grep -n "@BI: *.*$" ${article} | cut -d ":" -f 1)
+        lower_plus_one=$((${lower_img}+1))
+        upper_plus_one=$((${upper_img}+1))
+        
+        if [ "${lower_img}" -gt "${upper_img}" ]; then
+            upper=$(grep "@BA: *.*" ${article})
+            lower=$(grep "@BI: *.*" ${article})
+            lower_bu=$(grep "@B: *.*" ${article})
+            
+            sed -i ''"${upper_img}"'c'"${lower}" ${article}
+            sed -i ''"${lower_img}"'c'"${upper}" ${article}
+            sed -i ''"${upper_plus_one}"'c'"${lower_bu}" ${article}
+            sed -i ''"${lower_plus_one}"'d' ${article}
+        fi
     fi
-fi
 }
 
 ## Module: REPLACE BOXES IN BOOK ARTICLE ##
@@ -170,11 +202,11 @@ function mod_replace_bookbox {
 buecher=$(grep -e '@SW:*B.cher' ${article})
 infobox=$(grep -c '^@IT:.*Info' ${article})
 
-if [ "${buecher}" ] && [ "${infobox}" == 2 ]; then
-	echo -e "Found Boxes in article on books, rearrange numbers for XML conversion."
-    sed -i '0,/IT\:.*fo$/s//KT:Info 1/; /IT\:.*fo$/s//KT:Info 2/' ${article}
-    sed -i 's/@IL:/@KL:/g' ${article}
-fi
+    if [ "${buecher}" ] && [ "${infobox}" == 2 ]; then
+        
+        sed -i '0,/IT\:.*fo$/s//KT:Info 1/; /IT\:.*fo$/s//KT:Info 2/' ${article}
+        sed -i 's/@IL:/@KL:/g' ${article}
+    fi
 }
 
 
@@ -186,6 +218,7 @@ leserbriefe=$(grep -e '@SW:*Leserbriefe' ${article})
 dachzeile=$(grep -e '@D: *$' ${article})
 
 if [ "${leserbriefe}" ] && [ "${dachzeile}" ]; then
+    
     sed -i 's/@D:/@D:Auf den Punkt gebracht/g' ${article}
     sed -i 's/@T:/@T:Leserbriefe/g' ${article}
 fi
@@ -201,8 +234,8 @@ news=$(grep -e '@SW: *News' ${article})
 zut=$(grep -e '@SW: *Zahlen & Trends' ${article})
 
 if [ "${news}" ] || [ "${zut}" ] ; then
-	countr=$(grep -c '^@BC:' ${article})
-	echo -e "Found News/ZuT file, rearrange picture order if needed."
+    
+    countr=$(grep -c '^@BC:' ${article})
     for i in $(seq 1 ${countr}); do
         # look for first matches, if several matches, only show last one
         text=$(grep -o '@BC:.*$' -m ${i} ${article} | tail -n 1)
@@ -229,6 +262,7 @@ function mod_prepare_tooltipps {
 tooltipps=$(grep -e '@T: *Tooltipps' ${article})
 
 if [ "${tooltipps}" ]; then
+    
     trailer=$(grep -e '@V: *$' ${article})
     author=$(grep -e '@A: *$' ${article})
     
@@ -254,9 +288,10 @@ fi
 }
 
 
-## MODULE: USE SATZFERTIG AND CHECK RESULT IN BROWSER ##
+## Module: USE SATZFERTIG AND CHECK RESULT IN BROWSER ##
 
 function mod_html_check {
+
 
 # write sf stderr and stdout in error.log
 echo -e "## Start of error.log for:" ${folder} "##\n" >> ../${error_log}
@@ -266,10 +301,9 @@ echo -e "\n## End of error.log for:" ${folder} "##\n" >> ../${error_log}
 # watch HTML File in $browser
 while true
     do
-        read -p "Do you want to check the generated HTML file in a browser now? [y/n]" firefox
+        read -p "Check generated HTML in a browser? [y/n]" firefox
         case ${firefox} in
             y)
-                echo -e "Firefox ist starting right now, please check the 'article.html'."
                 ${browser} --safe-mode ${article_html} 2>&1
                 break
                 ;;
@@ -288,10 +322,9 @@ function mod_extract_listing {
 avail=$(grep "@KT: *Listing 1" ${article})
 
 if [ "$avail" ]; then
-    echo -e "Found listings in" ${folder}", converting now, stay tuned..."
+    
     if [ -d listings ]; then
         /usr/bin/rm -fR listings
-        echo "Removed existing 'listings'-folder and build new one."
     fi
 
     mkdir listings >/dev/null 2>&1
@@ -302,15 +335,13 @@ if [ "$avail" ]; then
     cd listings
     for i in * ; do
         sed -i 's/\(.\{2\}\)//' ${i}
-        j=`ls ${i} | cut -c 13-`
+        j=$(ls ${i} | cut -c 13-)
         mv ${i} listing${j}
         sleep 2
     # TODO: Remove Inline-Text-Listings, keep only Listing Boxes
     done
     rm listing_* > /dev/null 2>&1
     cd ..
-else
-    echo -e "No listings found in" ${folder}"."
 fi
 }
 
@@ -320,7 +351,7 @@ fi
 
 function dryrun {
     # check, if location is your own subfolder in "1_export", for example "kki"
-    echo -e "Now you may check all your 'article.txt' in a row. If you find errors in your HTML view, you can correct those in an editor of your choice. Afterwards you can convert all listings and move the result to '2_checked'"
+    
     sleep 2
     if [ -d ${exportpath} ]; then
 
@@ -337,6 +368,8 @@ function dryrun {
                 cd ${working_dir}/${folder}
                 echo -e "\nNext article:"${folder}
                 echo -e "================================"
+                # convert to UTF-8
+                convert_to_utf8
                 
                 # this module removes "Heft-DVD" boxes that make no sense online
                 mod_remove_boxes
@@ -347,6 +380,10 @@ function dryrun {
                 mod_prepare_pics_news_zut
                 mod_prepare_edi
                 mod_prepare_tooltipps
+                
+                # convert back to ISO-8859-15
+                convert_to_iso8859_15
+                
                 mod_html_check
                                 
                 while true
@@ -361,6 +398,7 @@ function dryrun {
                             rm ${working_dir}/${error_log}
                             sleep 2
                             ${editor} ${article} &&
+                            
                             read -p "Move on to the next article? [y/n]" moveon
                                 case ${moveon} in
                                 y)
@@ -373,9 +411,17 @@ function dryrun {
                             break
                             ;;
                         *)
-                            echo -e "Test run finished, move to the next article!"
-                            rm ${working_dir}/${error_log}
-                            break
+                            read -p "Move on to the next article? [y/n]" moveover
+                                case ${moveon} in
+                                y)
+                                    rm ${working_dir}/${error_log}
+                                    break
+                                    ;;
+                                *)
+                                    exit 0
+                                    ;;
+                                esac
+                            break      
                             ;;
                         esac
                     done
@@ -410,7 +456,7 @@ function convert {
             if [ -d ${working_dir}/${folder} ]; then
                 cd ${working_dir}/${folder}
                 # after everything is fine with article.txt, start extracting the listings
-                . ${bin_dir}/lm_post_production_modules/mod_extract_listings.sh
+                mod_extract_listing
 
                 # go back in your subfolder, for example "kki"
                 cd ..
