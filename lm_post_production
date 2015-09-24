@@ -170,6 +170,7 @@ function mod_replace_bookbox {
 buecher=$(grep -e '@SW:*B.cher' ${article})
 infobox=$(grep -c '^@IT:.*Info' ${article})
 
+if [ "${buecher}" ] && [ "${infobox}" == 2 ]; then
 	echo -e "Found Boxes in article on books, rearrange numbers for XML conversion."
     sed -i '0,/IT\:.*fo$/s//KT:Info 1/; /IT\:.*fo$/s//KT:Info 2/' ${article}
     sed -i 's/@IL:/@KL:/g' ${article}
