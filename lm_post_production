@@ -139,6 +139,30 @@ rm temp.txt
 }
 
 
+## Module: CHANGE PICTURES IN EDITORIAL ##
+
+function mod_prepare_edi {
+edi=$(grep -e '@R: *Editorial' ${article})
+
+if [ "${edi}" ]; then
+    upper_img=$(grep -n "@BA: *.*$" ${article} | cut -d ":" -f 1)
+    lower_img=$(grep -n "@BI: *.*$" ${article} | cut -d ":" -f 1)
+    lower_plus_one=$((${lower_img}+1))
+    upper_plus_one=$((${upper_img}+1))
+    
+    if [ "${lower_img}" -gt "${upper_img}" ]; then
+        upper=$(grep "@BA: *.*" ${article})
+        lower=$(grep "@BI: *.*" ${article})
+        lower_bu=$(grep "@B: *.*" ${article})
+        
+        sed -i ''"${upper_img}"'c'"${lower}" ${article}
+        sed -i ''"${lower_img}"'c'"${upper}" ${article}
+        sed -i ''"${upper_plus_one}"'c'"${lower_bu}" ${article}
+        sed -i ''"${lower_plus_one}"'d' ${article}
+    fi
+fi
+}
+
 ## Module: REPLACE BOXES IN BOOK ARTICLE ##
 
 function mod_replace_bookbox {
@@ -146,7 +170,6 @@ function mod_replace_bookbox {
 buecher=$(grep -e '@SW:*B.cher' ${article})
 infobox=$(grep -c '^@IT:.*Info' ${article})
 
-if [ "${buecher1}" ] && [ "${infobox}" == 2 ]; then
 	echo -e "Found Boxes in article on books, rearrange numbers for XML conversion."
     sed -i '0,/IT\:.*fo$/s//KT:Info 1/; /IT\:.*fo$/s//KT:Info 2/' ${article}
     sed -i 's/@IL:/@KL:/g' ${article}
@@ -199,6 +222,36 @@ if [ "${news}" ] || [ "${zut}" ] ; then
 fi
 }
 
+## Module: PREPARE TOOLTIPPS ##
+
+function mod_prepare_tooltipps {
+tooltipps=$(grep -e '@T: *Tooltipps' ${article})
+
+if [ "${tooltipps}" ]; then
+    trailer=$(grep -e '@V: *$' ${article})
+    author=$(grep -e '@A: *$' ${article})
+    
+    if [ "${trailer}" ]; then
+        for i in $(grep -n '^@KT: *.*$' article.txt | cut -d ":" -f 1); do
+            # Show text following @KT:
+            headlines=$(sed ''"${i}"'!d' ${article} | cut -d ":" -f 2)
+            # Keep @V-line (&) but $headline followed by a comma
+            sed -i 's/\@V: *.*$/&'"${headlines}"', /g' ${article}
+        done
+            # Keep pattern part in parenthesis, remove last comma, add Text after @V
+            sed -i 's/\@V:\( *.*\), $/\@V:Im Kurztest: \1 /' ${article}
+    fi
+    if [ "${author}" ]; then
+        # add author
+        sed -i 's/\@A: *.*$/\@A:Uwe Vollbracht/g' ${article}
+    fi
+    # remove wrong tagged @BA-picture
+    sed -i '/@BA: *.*$/d' ${article}
+    # replace @KT: with @ZKT:
+    sed -i 's/@KT:/@ZKT:/g' ${article}
+fi
+}
+
 
 ## MODULE: USE SATZFERTIG AND CHECK RESULT IN BROWSER ##
 
@@ -224,6 +277,40 @@ while true
                 ;;
         esac
     done
+}
+
+
+## Module: EXTRACT LISTINGS FROM ARTICLES ##
+
+function mod_extract_listing {
+
+avail=$(grep "@KT: *Listing 1" ${article})
+
+if [ "$avail" ]; then
+    echo -e "Found listings in" ${folder}", converting now, stay tuned..."
+    if [ -d listings ]; then
+        /usr/bin/rm -fR listings
+        echo "Removed existing 'listings'-folder and build new one."
+    fi
+
+    mkdir listings >/dev/null 2>&1
+    chmod a+rw listings
+
+    ${satzfertig} -nL listings ${article} > /dev/null 2>&1 &&
+
+    cd listings
+    for i in * ; do
+        sed -i 's/\(.\{2\}\)//' ${i}
+        j=`ls ${i} | cut -c 13-`
+        mv ${i} listing${j}
+        sleep 2
+    # TODO: Remove Inline-Text-Listings, keep only Listing Boxes
+    done
+    rm listing_* > /dev/null 2>&1
+    cd ..
+else
+    echo -e "No listings found in" ${folder}"."
+fi
 }
 
 
@@ -257,6 +344,8 @@ function dryrun {
                 mod_replace_bookbox
                 mod_prepare_ed_letter
                 mod_prepare_pics_news_zut
+                mod_prepare_edi
+                mod_prepare_tooltipps
                 mod_html_check
                                 
                 while true
