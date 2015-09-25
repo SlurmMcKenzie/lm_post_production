@@ -98,40 +98,39 @@ function strngs {
 ##  Module: REMOVE UNWANTED BOXES ##
 
 function mod_remove_boxes {
-startbox=$(grep -n -e "^@KT:*Inhalt\|@KT:*D[eE][lL][uU][gG]\|@KT:*H[Ee][fF][tT]-DVD" ${article} | cut -d ":" -f1)
+set -x
+startbox=$(grep -n -e "^@KT: *Inhalt\|@KT: *D[eE][lL][uU][gG]\|@KT: *H[Ee][fF][tT]-DVD" ${article} | cut -d ":" -f1)
 endbox=$(grep -n -e "^@KE" ${article} | cut -d ":" -f1)
     if [ "${startbox}" ]; then
-        
         for i in ${startbox}; do
             for j in ${endbox}; do
                 if [ "${j}" -gt "${i}" ]; then
                     echo -e "\n8<----------"
                     sed ${i},${j}'!d' ${article} | tr "[:space:]" " "
                     echo -e "\n---------->8\n"
-                    while true
-                        do
-                            read -p "This textbox is not needed anymore. Delete? [y/n]" delete
-                            case ${delete} in
-                                y)
-                                    sed -i ${i},${j}'d' ${article}
-                                    echo "Box deleted."
-                                    mod_remove_boxes
+                    read -p "This textbox is not needed anymore. Delete? [y/n]" delete
+                    case ${delete} in
+                        y)
+                            sed -i ${i},${j}'d' ${article}
+                            echo "Box deleted."
+                            mod_remove_boxes
                             ;;
-                                n)
-                                    echo "Box not changed."
-                                    break
+                        n)
+                            echo "Box stays unchanged."
+                            break
                             ;;
-                                *)
-                                    echo "Please type only [y] or [n]."
-                            esac
-                        done
-                    break
+                        *)
+                            echo "Please type only [y] or [n]."
+                    esac
+                else
+                    continue
                 fi
             done
         done
     else
-        return
+        exit 0
     fi
+set +x
 }
 
 
