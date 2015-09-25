@@ -183,6 +183,22 @@ occurence=$(grep -c '^@#' ${article})
 }
 
 
+##  Module: REMOVE DOUBLE LINES WITH EMPTY TABS ##
+
+function mod_remove_tablines {
+
+# Grep only those lines that consist only in Tabs
+# That prevents deleting lines with content
+tabs=$(grep -n '^        [^[:alnum:]]*$' ${article} | cut -d ":" -f1)
+    for i in ${tabs}; do
+        Zeile erfassen
+        checke ob Zeile drüber Tabzeile
+        checke ob Zeile drunter Tabzeile
+        wenn beides erfüllt, löschen
+        wenn nicht beides erfüllt, nächste Zeile
+    done
+}
+
 ## Module: CHANGE PICTURES IN EDITORIAL ##
 
 function mod_prepare_edi {
@@ -297,6 +313,8 @@ if [ "${tooltipps}" ]; then
     sed -i '/@BA: *.*$/d' ${article}
     # replace @KT: with @ZKT:
     sed -i 's/@KT:/@ZKT:/g' ${article}
+    # replace all BI-Tags except one
+    sed -i '/Visual_Tooltipps/!s/@BI:/@C:/g' ${article}
 fi
 }
 
