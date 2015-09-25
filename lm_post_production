@@ -173,13 +173,12 @@ function mod_remove_comments {
 
 # Deletes every comment except that @#:ID:...
 # '/Delete this/ {/Apart from that/! d}'
-occurence=$(grep -c '^#' ${article})
+occurence=$(grep -c '^@#' ${article})
 
-    if [ ${occurence} -gt "2" ]; then
+    if [ "${occurence}" -gt "2" ]; then
         
         sed -e '/^@#.*$/ {/^@#:ID.*$/! d}' ${article} > temp.txt &&
         mv temp.txt article.txt
-        rm temp.txt
     fi    
 }
 
