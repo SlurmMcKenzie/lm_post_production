@@ -152,6 +152,20 @@ secimage=$(grep -e 'DVDgold' ${article} | tail -1)
     fi
 }
 
+## Module: Control Box Title in News ##
+
+function mod_repair_news_box {
+boxtitle=$(grep -e '^@KT: *Kurznachrichten*$' ${article})
+
+    if [ "${boxtitle}" ]; then
+        exit 0;
+    else
+        startbox=$(grep -n '^@KL: *.*$' ${article} | head -n 1 | cut -d ":" -f1)
+        entrypoint=$((${startbox}-1))
+        sed -i ''"${entrypoint}"'i@KT: Kurznachrichten' ${article}
+    fi
+}
+
 
 ##  Module: REMOVE ALL COMMENTS EXCEPT THE ONE WITH ID ##
 
@@ -374,12 +388,13 @@ function dryrun {
                 # this module removes "Heft-DVD" boxes that make no sense online
                 mod_remove_boxes
                 mod_remove_duplicate
-                mod_remove_comments
                 mod_replace_bookbox
                 mod_prepare_ed_letter
                 mod_prepare_pics_news_zut
+                mod_repair_news_box
                 mod_prepare_edi
                 mod_prepare_tooltipps
+                mod_remove_comments
                 
                 # convert back to ISO-8859-15
                 convert_to_iso8859_15
