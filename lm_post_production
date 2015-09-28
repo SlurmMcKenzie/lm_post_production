@@ -95,42 +95,61 @@ function strngs {
     echo "Executing ${FUNCNAME}...${green}OK${noclr}"
 }
 
-##  Module: REMOVE UNWANTED BOXES ##
+##  Module: REMOVE ALL COMMENTS EXCEPT THE ONE WITH ID ##
+
+function mod_remove_comments {
+
+# Deletes every comment except that @#:ID:...
+# '/Delete this/ {/Apart from that/! d}'
+occurence=$(grep -c '^@#' ${article})
+
+    if [ "${occurence}" -gt "2" ]; then
+        
+        sed -i '/^@#.*$/ {/^@#:ID.*$/! d}' ${article}
+    fi    
+}
+
+##  Module: REMOVE UNWANTED BOXES (INHALT, DELUG) ##
+
+function mod_remove_boxes_check {
+startbox=$(grep -n -e "^@KT: *Inhalt\|@KT: *D[eE][lL][uU][gG]\|@KT: *H[Ee][fF][tT]-DVD" ${article} | cut -d ":" -f1 | head -n 1)
+}
 
 function mod_remove_boxes {
-set -x
-startbox=$(grep -n -e "^@KT: *Inhalt\|@KT: *D[eE][lL][uU][gG]\|@KT: *H[Ee][fF][tT]-DVD" ${article} | cut -d ":" -f1)
-endbox=$(grep -n -e "^@KE" ${article} | cut -d ":" -f1)
-    if [ "${startbox}" ]; then
-        for i in ${startbox}; do
-            for j in ${endbox}; do
-                if [ "${j}" -gt "${i}" ]; then
-                    echo -e "\n8<----------"
-                    sed ${i},${j}'!d' ${article} | tr "[:space:]" " "
-                    echo -e "\n---------->8\n"
-                    read -p "This textbox is not needed anymore. Delete? [y/n]" delete
-                    case ${delete} in
-                        y)
-                            sed -i ${i},${j}'d' ${article}
-                            echo "Box deleted."
-                            mod_remove_boxes
-                            ;;
-                        n)
-                            echo "Box stays unchanged."
+    mod_remove_boxes_check
+    while [ "${startbox}" ]
+    do
+        endbox=$(grep -n -e "^@KE" ${article} | cut -d ":" -f1)
+        for j in ${endbox}; do
+            if [ "${j}" -gt "${startbox}" ]; then
+                echo -e "\n8<----------"
+                sed ${startbox},${j}'!d' ${article} | tr "[:space:]" " "
+                echo -e "\n---------->8\n"
+                read -p "This textbox is not needed anymore. Delete? [y/n]" delete
+                case ${delete} in
+                    y)
+                        sed -i ${startbox},${j}'d' ${article}
+                        echo "Box deleted."
+                        mod_remove_boxes_check
+                        if [ ${startbox} ]; then
+                            continue
+                        else
                             break
-                            ;;
-                        *)
-                            echo "Please type only [y] or [n]."
-                    esac
-                else
-                    continue
-                fi
-            done
+                        fi
+                        ;;
+                    n)
+                        echo "Please remove unneeded boxes by hand."
+                        continue
+                        ;;
+                    *)
+                        echo "Please type only [y] or [n]."
+                        ;;
+                esac
+            else
+                continue
+            fi
         done
-    else
-        exit 0
-    fi
-set +x
+    done
 }
 
 
@@ -163,22 +182,6 @@ boxtitle=$(grep -e '^@KT: *Kurznachrichten*$' ${article})
         entrypoint=$((${startbox}-1))
         sed -i ''"${entrypoint}"'i@KT: Kurznachrichten' ${article}
     fi
-}
-
-
-##  Module: REMOVE ALL COMMENTS EXCEPT THE ONE WITH ID ##
-
-function mod_remove_comments {
-
-# Deletes every comment except that @#:ID:...
-# '/Delete this/ {/Apart from that/! d}'
-occurence=$(grep -c '^@#' ${article})
-
-    if [ "${occurence}" -gt "2" ]; then
-        
-        sed -e '/^@#.*$/ {/^@#:ID.*$/! d}' ${article} > temp.txt &&
-        mv temp.txt article.txt
-    fi    
 }
 
 
@@ -402,7 +405,6 @@ function dryrun {
                 convert_to_utf8
                 
                 # this module removes "Heft-DVD" boxes that make no sense online
-                mod_remove_boxes
                 mod_remove_duplicate
                 mod_replace_bookbox
                 mod_prepare_ed_letter
@@ -411,6 +413,7 @@ function dryrun {
                 mod_prepare_edi
                 mod_prepare_tooltipps
                 mod_remove_comments
+                mod_remove_boxes
                 
                 # convert back to ISO-8859-15
                 convert_to_iso8859_15
