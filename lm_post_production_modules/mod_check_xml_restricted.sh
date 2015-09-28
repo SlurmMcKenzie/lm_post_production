@@ -1,18 +1,16 @@
 #!/bin/bash
 
-newsfile=article.xml
+edi=$(grep -e '<section>Editorial</section>' ${article})
+buecher=$(grep -e '<subject>Bücher</subject>' ${article})
+perlsnap=$(grep -e '<subject>Perl-Snapshot</subject>' ${article})
+delugdvd=$(grep -e '<kicker>In eigener Sache: DELUG-DVD</kicker>' ${article})
 
-var1=$(grep -e '<section>Editorial</section>' ${newsfile})
-var2=$(grep -e '<subject>Bücher</subject>' ${newsfile})
-var3=$(grep -e '<subject>Perl-Snapshot</subject>' ${newsfile})
-var4=$(grep -e '<kicker>In eigener Sache: DELUG-DVD</kicker>' ${newsfile})
-
-if [ "${var1}" ] ; then
-	sed -i 's/online access="free"/online access="restricted"/' ${newsfile}
+if [ "${edi}" ] ; then
+	sed -i 's/online access="free"/online access="restricted"/' ${article}
     echo "Prepared XML file in ${folder} for Upload."
 fi
 
-if [ "${var2}" ] || [ "${var3}" ] || [ "${var4}" ]; then
-    sed -i 's/online\ access="restricted"/online\ access="free"/' ${newsfile}
+if [ "${buecher}" ] || [ "${perlsnap}" ] || [ "${delugdvd}" ]; then
+    sed -i 's/online\ access="restricted"/online\ access="free"/' ${article}
     echo "Prepared XML file in ${folder} for Upload."
 fi

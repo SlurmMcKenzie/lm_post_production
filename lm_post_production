@@ -139,7 +139,7 @@ function mod_remove_boxes {
                         ;;
                     n)
                         echo "Please remove unneeded boxes by hand."
-                        continue
+                        break 2
                         ;;
                     *)
                         echo "Please type only [y] or [n]."
@@ -173,11 +173,10 @@ secimage=$(grep -e 'DVDgold' ${article} | tail -1)
 ## Module: Control Box Title in News ##
 
 function mod_repair_news_box {
+
 boxtitle=$(grep -e '^@KT: *Kurznachrichten*$' ${article})
 
     if [ "${boxtitle}" ]; then
-        exit 0;
-    else
         startbox=$(grep -n '^@KL: *.*$' ${article} | head -n 1 | cut -d ":" -f1)
         entrypoint=$((${startbox}-1))
         sed -i ''"${entrypoint}"'i@KT: Kurznachrichten' ${article}
@@ -357,7 +356,7 @@ avail=$(grep "@KT: *Listing 1" ${article})
 if [ "$avail" ]; then
     
     if [ -d listings ]; then
-        /usr/bin/rm -fR listings
+        rm -fR listings
     fi
 
     mkdir listings >/dev/null 2>&1
@@ -377,6 +376,48 @@ if [ "$avail" ]; then
     cd ..
 fi
 }
+
+
+## Module: MOVE FINISHED ARTICLES ##
+
+function mod_move_finalized_folder {
+
+	if [ -d ${target_folder} ]; then
+	    #...if so, move all folders there
+	    mv -i ${folder} ${target_folder}
+	    echo "Move" ${folder} "to 2_checked."
+	    echo -e "****\n"
+	else
+	    #...if not, mkdir folder
+	    echo "Folder '2_checked' doesn't exist yet. Please add."
+	    exit 0
+	    # TODO: Folder anlegen: mkdir ../../2_checked
+	fi
+}
+
+
+## Module: REPAIR XML ##
+
+function mod_repair_xml {
+
+article=article.xml
+
+edi=$(grep -e '<section>Editorial</section>' ${article})
+buecher=$(grep -e '<subject>Bücher</subject>' ${article})
+perlsnap=$(grep -e '<subject>Perl-Snapshot</subject>' ${article})
+delugdvd=$(grep -e '<kicker>In eigener Sache: DELUG-DVD</kicker>' ${article})
+
+	if [ "${edi}" ] ; then
+		sed -i 's/online access="free"/online access="restricted"/' ${article}
+	    echo "Prepared XML file in ${folder} for Upload."
+	fi
+
+	if [ "${buecher}" ] || [ "${perlsnap}" ] || [ "${delugdvd}" ]; then
+	    sed -i 's/online\ access="restricted"/online\ access="free"/' ${article}
+	    echo "Prepared XML file in ${folder} for Upload."
+	fi
+}
+
 
 
 #####   Main: "-d" - START A DRYRUN #####
@@ -446,7 +487,7 @@ function dryrun {
                             ;;
                         *)
                             read -p "Move on to the next article? [y/n]" moveover
-                                case ${moveon} in
+                                case ${moveover} in
                                 y)
                                     rm ${working_dir}/${error_log}
                                     break
@@ -465,6 +506,7 @@ function dryrun {
         done
         echo -e "\nIf all articles look fine, you should now call 'lm_post_production -c' to extract listings and prepare files for a proper XML export.\n"
     else
+	echo -e "You probably started this script from the wrong dir"
         exit 0
     fi
 }
@@ -496,7 +538,7 @@ function convert {
                 cd ..
 
                 # check if $target_folder exists and move just finalized $folder there
-                . ${bin_dir}/lm_post_production_modules/mod_move_finalized_folder.sh
+                mod_move_finalized_folder
             fi
         done
     else
@@ -504,6 +546,7 @@ function convert {
         exit 0
     fi
 }
+
 
 # CONVERT TXT TO XML AND CHANGE XML FILES
 function xml {
@@ -533,9 +576,7 @@ function xml {
             for folder in $(ls -d [0-9][0-9][0-9]*); do
                 if [ -d ${target_folder}/${folder} ]; then 
                     cd ${target_folder}/${folder}
-                    . ${bin_dir}/lm_post_production_modules/mod_check_xml_restricted.sh
-                else
-                    echo "No relevant folder found in '2_checked'."
+                    mod_repair_xml
                 fi
             done
         else
