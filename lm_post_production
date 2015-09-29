@@ -29,7 +29,6 @@ issue_month=$(pwd | grep -o "[2][0][0-9][0-9]..." | tail -c 3)
 function convert_to_utf8 {
     
     ${iconv} -f ISO-8859-15 -t UTF-8 ${article} -o ${article}
-
 }
 
 
@@ -38,7 +37,6 @@ function convert_to_utf8 {
 function convert_to_iso8859_15 {
     
     ${iconv} -f UTF-8 -t ISO-8859-15 ${article} -o ${article}
-
 }
 
 
@@ -87,12 +85,6 @@ function get_help {
     echo -e "\tLicense: GNU Public License v2."
     echo -e "\tThis is free software: you are free  to  change  and  redistribute  it.
     \tThere is NO WARRANTY, to the extent permitted by law."
-}
-
-function strngs {
-    green='\033[0;32m'
-    noclr='\033[0m'
-    echo "Executing ${FUNCNAME}...${green}OK${noclr}"
 }
 
 ##  Module: REMOVE ALL COMMENTS EXCEPT THE ONE WITH ID ##
@@ -174,13 +166,16 @@ secimage=$(grep -e 'DVDgold' ${article} | tail -1)
 
 function mod_repair_news_box {
 
+news=$(grep -e '@SW: *News' ${article})
 boxtitle=$(grep -e '^@KT: *Kurznachrichten*$' ${article})
 
-    if [ "${boxtitle}" ]; then
+if [ "${news}" ] ; then
+    if [ -z "${boxtitle}" ]; then
         startbox=$(grep -n '^@KL: *.*$' ${article} | head -n 1 | cut -d ":" -f1)
         entrypoint=$((${startbox}-1))
         sed -i ''"${entrypoint}"'i@KT: Kurznachrichten' ${article}
     fi
+fi
 }
 
 
@@ -200,19 +195,24 @@ tabs=$(grep -n '^        [^[:alnum:]]*$' ${article} | cut -d ":" -f1)
     done
 }
 
+
 ## Module: CHANGE PICTURES IN EDITORIAL ##
 
 function mod_prepare_edi {
 edi=$(grep -e '@R: *Editorial' ${article})
 
     if [ "${edi}" ]; then
+        # remove empty tags
+        sed -i '/@V:.*$/d' ${article}
+        sed -i '/@A:.*$/d' ${article}
         
-        upper_img=$(grep -n "@BA: *.*$" ${article} | cut -d ":" -f 1)
-        lower_img=$(grep -n "@BI: *.*$" ${article} | cut -d ":" -f 1)
+        # switch jans picture with his signature
+        upper_img=$(grep -n "@BA\: *.*unterschrift.*$" ${article} | cut -d ":" -f 1)
+        lower_img=$(grep -n "@B\: *.*Chefredakteur.*$" ${article} | cut -d ":" -f 1)
         lower_plus_one=$((${lower_img}+1))
         upper_plus_one=$((${upper_img}+1))
-        
-        if [ "${lower_img}" -gt "${upper_img}" ]; then
+
+        if [[ "${upper_img}" ]] && [ "${lower_img}" -gt "${upper_img}" ]; then
             upper=$(grep "@BA: *.*" ${article})
             lower=$(grep "@BI: *.*" ${article})
             lower_bu=$(grep "@B: *.*" ${article})
@@ -220,10 +220,15 @@ edi=$(grep -e '@R: *Editorial' ${article})
             sed -i ''"${upper_img}"'c'"${lower}" ${article}
             sed -i ''"${lower_img}"'c'"${upper}" ${article}
             sed -i ''"${upper_plus_one}"'c'"${lower_bu}" ${article}
-            sed -i ''"${lower_plus_one}"'d' ${article}
+            artefakt=$(grep -n "@BI" ${article} | cut -d ":" -f 1 | tail -n -1)
+            sed -i ''"${artefakt}"'d' ${article}
+
+            sed -i 's|@BA|@BI|' ${article}
+            sed -i '/unterschrift/!s/@BI/@BA/g' ${article}
         fi
     fi
 }
+
 
 ## Module: REPLACE BOXES IN BOOK ARTICLE ##
 
@@ -265,6 +270,11 @@ zut=$(grep -e '@SW: *Zahlen & Trends' ${article})
 
 if [ "${news}" ] || [ "${zut}" ] ; then
     
+    # First remove empty @V: and @A:-Tags
+    sed -i '/@V:.*$/d' ${article}
+    sed -i '/@A:.*$/d' ${article}
+    
+    # Now switch lines for pictures
     countr=$(grep -c '^@BC:' ${article})
     for i in $(seq 1 ${countr}); do
         # look for first matches, if several matches, only show last one
