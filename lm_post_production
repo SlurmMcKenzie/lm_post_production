@@ -329,6 +329,18 @@ if [ "${tooltipps}" ]; then
 fi
 }
 
+## Module: REMOVE WHITESPACES FROM URLs
+
+function mod_repair_urls {
+
+urls=$(grep -o "\(<U> *.*[[:space:]]*.*<U>\)" ${article} | grep "[[:space:]]" )
+    
+    if [ "${urls}" ]; then
+        # 
+        sed -i 's/\(<U>.*\) \(.*<U>\)/\1\2/g' ${article}
+    fi
+}
+
 
 ## Module: USE SATZFERTIG AND CHECK RESULT IN BROWSER ##
 
@@ -462,6 +474,8 @@ function dryrun {
                 mod_prepare_pics_news_zut
                 mod_repair_news_box
                 mod_prepare_edi
+                mod_repair_urls
+                mod_repair_editor_abbrevation
                 mod_prepare_tooltipps
                 mod_remove_comments
                 mod_remove_boxes
