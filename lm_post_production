@@ -173,7 +173,7 @@ if [ "${news}" ] ; then
     if [ -z "${boxtitle}" ]; then
         startbox=$(grep -n '^@KL: *.*$' ${article} | head -n 1 | cut -d ":" -f1)
         entrypoint=$((${startbox}-1))
-        sed -i ''"${entrypoint}"'i@KT: Kurznachrichten' ${article}
+        sed -i ''"${entrypoint}"'@KT: Kurznachrichten' ${article}
     fi
 fi
 }
@@ -333,10 +333,9 @@ fi
 
 function mod_repair_urls {
 
-urls=$(grep -o "\(<U> *.*[[:space:]]*.*<U>\)" ${article} | grep "[[:space:]]" )
+urls=$(grep -o "\(<U> *.*[[:space:]]*.*<U>\)" ${article} | grep "[[:space:]]")
     
     if [ "${urls}" ]; then
-        # 
         sed -i 's/\(<U>.*\) \(.*<U>\)/\1\2/g' ${article}
     fi
 }
@@ -418,6 +417,35 @@ function mod_move_finalized_folder {
 }
 
 
+## Module: ERASE EMPTY SPACES IN EDITORS ABBREVATION
+
+function mod_repair_editor_abbrevation {
+
+abbrevation=$(grep -n "\((<I>[[:space:]]*.*[[:space:]]<I>)\)" article.txt | grep "[[:space:]]")
+matches=$(grep -o "\((<I>[[:space:]]*.*[[:space:]]<I>)\)" article.txt | grep -c "[[:space:]]" | cut -d ":" -f1 | tail -n -1)
+
+    if [ "${abbrevation}" ]; then
+        if [ "${matches}" == 1 ]; then
+            sed -i 's/\(<I>.*\) \(.*<I>\)/\1\2/g' ${article}
+        else
+            echo "Several <I>-tagged matches with whitespaces. Please correct."
+        fi
+    fi
+}
+
+
+## Module: REPAIR PERL VIDEO BOX
+
+function mod_repair_perl_video_box {
+
+online=$(grep -o "<U><U>.*$" ${article.txt})
+
+    if [ "${online}" ]; then
+            sed -i 's/<U><U>.*\(http.*plus\).*<U>/<U>\1<U>/g' ${article}
+    fi
+}
+
+
 ## Module: REPAIR XML ##
 
 function mod_repair_xml {
@@ -476,6 +504,7 @@ function dryrun {
                 mod_prepare_edi
                 mod_repair_urls
                 mod_repair_editor_abbrevation
+                mod_repair_perl_video_box
                 mod_prepare_tooltipps
                 mod_remove_comments
                 mod_remove_boxes
