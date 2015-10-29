@@ -455,7 +455,7 @@ matches=$(grep -o "\((<I>[[:space:]]*.*[[:space:]]<I>)\)" article.txt | grep -c 
 
 function mod_repair_perl_video_box {
 
-online=$(grep -o "<U><U>.*$" ${article.txt})
+online=$(grep -o "<U><U>.*$" ${article})
 
     if [ "${online}" ]; then
             sed -i 's/<U><U>.*\(http.*plus\).*<U>/<U>\1<U>/g' ${article}
