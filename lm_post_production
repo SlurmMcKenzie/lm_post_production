@@ -87,6 +87,19 @@ function get_help {
     \tThere is NO WARRANTY, to the extent permitted by law."
 }
 
+## Module: WARNS WHERE MANUAL CHANGES ARE NECESSARY
+# Warnings could be removed with future solutions
+
+function mod_warnings {
+news=$(grep -e '@SW: *News' ${article})
+zut=$(grep -e '@SW: *Zahlen & Trends' ${article})
+
+	if [ "${news}" ] || [ "${zut}" ] ; then
+		rot=$(tput setaf 1)
+		reset=$(tput sgr0)
+		echo -e ${rot}"Please check if pictures are where they belong"${reset}
+	fi
+}
 
 ##  Module: REMOVE ALL COMMENTS EXCEPT THE ONE WITH ID ##
 
@@ -500,6 +513,7 @@ function dryrun {
                 convert_to_utf8
                 
                 # this module removes "Heft-DVD" boxes that make no sense online
+                mod_warnings
                 mod_remove_duplicate
                 mod_replace_bookbox
                 mod_prepare_ed_letter
