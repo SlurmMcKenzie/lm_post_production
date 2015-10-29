@@ -87,6 +87,7 @@ function get_help {
     \tThere is NO WARRANTY, to the extent permitted by law."
 }
 
+
 ##  Module: REMOVE ALL COMMENTS EXCEPT THE ONE WITH ID ##
 
 function mod_remove_comments {
@@ -101,49 +102,51 @@ occurence=$(grep -c '^@#' ${article})
     fi    
 }
 
-##  Module: REMOVE UNWANTED BOXES (INHALT, DELUG) ##
 
-function mod_remove_boxes_check {
-startbox=$(grep -n -e "^@KT: *Inhalt\|@KT: *D[eE][lL][uU][gG]\|@KT: *H[Ee][fF][tT]-DVD" ${article} | cut -d ":" -f1 | head -n 1)
+## Module: REMOVE UNWANTED BOXES
+
+function mod_find_broken_boxes {
+
+	endbox=$(grep -n -e "^@KE" ${article} | cut -d ":" -f1)
+	for k in ${endbox}; do
+		if [ "${k}" -gt "${j}" ]; then
+			echo -e "\n8<----------"
+            sed -e "${j}","${k}"'!d' ${article} | tr -s "[:space:]" " " | tr '@' '\n'
+            echo -e "\n---------->8\n"
+            read -p "Should I delete this textbox? [y/n]" delete
+			case ${delete} in
+                    y)
+                        sed -i "${j}","${k}"'d' ${article}
+                        counter=$((${counter} + 1))
+                        echo "Box deleted."
+                        
+                        if [[ ${counter} -le ${occurences} ]]; then 
+							mod_remove_boxes
+						else
+							break 2
+						fi
+                        ;;
+                    n)
+						counter=$((${counter} + 1))
+                        break
+                        ;;
+			esac
+			break
+		fi	
+	done
 }
 
 function mod_remove_boxes {
-    mod_remove_boxes_check
-    while [ "${startbox}" ]
-    do
-        endbox=$(grep -n -e "^@KE" ${article} | cut -d ":" -f1)
-        for j in ${endbox}; do
-            if [ "${j}" -gt "${startbox}" ]; then
-                echo -e "\n8<----------"
-                sed ${startbox},${j}'!d' ${article} | tr "[:space:]" " "
-                echo -e "\n---------->8\n"
-                read -p "This textbox is not needed anymore. Delete? [y/n]" delete
-                case ${delete} in
-                    y)
-                        sed -i ${startbox},${j}'d' ${article}
-                        echo "Box deleted."
-                        mod_remove_boxes_check
-                        if [ ${startbox} ]; then
-                            continue
-                        else
-                            break
-                        fi
-                        ;;
-                    n)
-                        echo "Please remove unneeded boxes by hand."
-                        break 2
-                        ;;
-                    *)
-                        echo "Please type only [y] or [n]."
-                        ;;
-                esac
-            else
-                continue
-            fi
-        done
-    done
-}
 
+	startbox=$(grep -n -e "^@KT: *Inhalt\|^@KT: *D[eE][lL][uU][gG]\|^@KT: *H[Ee][fF][tT]-DVD" ${article} | cut -d ":" -f1)
+	occurences=$(grep -c -e "^@KT: *Inhalt\|^@KT: *D[eE][lL][uU][gG]\|^@KT: *H[Ee][fF][tT]-DVD" ${article})
+	
+	if [[ "${startbox}" ]]; then
+			for j in ${startbox}; do
+				mod_find_broken_boxes
+			done
+	fi
+}
 
 ##  Module: REMOVE DUPLICATE TITLE PICTURES ##
 #   removes duplicate title pics in "sw_einf"
@@ -199,6 +202,7 @@ tabs=$(grep -n '^        [^[:alnum:]]*$' ${article} | cut -d ":" -f1)
 ## Module: CHANGE PICTURES IN EDITORIAL ##
 
 function mod_prepare_edi {
+
 edi=$(grep -e '@R: *Editorial' ${article})
 
     if [ "${edi}" ]; then
@@ -299,6 +303,7 @@ fi
 ## Module: PREPARE TOOLTIPPS ##
 
 function mod_prepare_tooltipps {
+
 tooltipps=$(grep -e '@T: *Tooltipps' ${article})
 
 if [ "${tooltipps}" ]; then
@@ -344,7 +349,6 @@ urls=$(grep -o "\(<U> *.*[[:space:]]*.*<U>\)" ${article} | grep "[[:space:]]")
 ## Module: USE SATZFERTIG AND CHECK RESULT IN BROWSER ##
 
 function mod_html_check {
-
 
 # write sf stderr and stdout in error.log
 echo -e "## Start of error.log for:" ${folder} "##\n" >> ../${error_log}
@@ -474,8 +478,8 @@ delugdvd=$(grep -e '<kicker>In eigener Sache: DELUG-DVD</kicker>' ${article})
 #       Repairs all kinds of bugs before conversion and shows result
 
 function dryrun {
+
     # check, if location is your own subfolder in "1_export", for example "kki"
-    
     sleep 2
     if [ -d ${exportpath} ]; then
 
@@ -568,6 +572,7 @@ function dryrun {
 ##### Main: "-c" - CONVERT LISTINGS AND MOVE FOLDERS #######
 
 function convert {
+
     # check, if location is your own subfolder in "1_export", for example "kki"
     if [ -d ${exportpath} ]; then
 
@@ -603,6 +608,7 @@ function convert {
 
 # CONVERT TXT TO XML AND CHANGE XML FILES
 function xml {
+
     # check, if location is in "2_checked"
     if [ -d ${target_folder} ]; then
         ## Insert modules
