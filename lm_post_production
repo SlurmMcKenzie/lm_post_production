@@ -28,7 +28,9 @@ issue_month=$(pwd | grep -o "[2][0][0-9][0-9]..." | tail -c 3)
  
 function convert_to_utf8 {
     
-    ${iconv} -f ISO-8859-15 -t UTF-8 ${article} -o ${article}
+    chmod 755 ${article}
+    ${iconv} -f ISO-8859-15 -t UTF-8 ${article} -o article.txt.tmp &&
+    mv article.txt.tmp article.txt &&
 }
 
 
@@ -36,7 +38,9 @@ function convert_to_utf8 {
 
 function convert_to_iso8859_15 {
     
-    ${iconv} -f UTF-8 -t ISO-8859-15 ${article} -o ${article}
+    chmod 755 ${article}
+    ${iconv} -f UTF-8 -t ISO-8859-15 ${article} -o article.txt.tmp &&
+    mv article.txt.tmp article.txt &&
 }
 
 
@@ -91,13 +95,14 @@ function get_help {
 # Warnings could be removed with future solutions
 
 function mod_warnings {
+	
 news=$(grep -e '@SW: *News' ${article})
 zut=$(grep -e '@SW: *Zahlen & Trends' ${article})
 
 	if [ "${news}" ] || [ "${zut}" ] ; then
 		rot=$(tput setaf 1)
 		reset=$(tput sgr0)
-		echo -e ${rot}"Please check if pictures are where they belong"${reset}
+		echo -e ${rot}"PLEASE CHECK PICTURE ORDER IN" ${article}${reset}
 	fi
 }
 
@@ -113,6 +118,22 @@ occurence=$(grep -c '^@#' ${article})
         
         sed -i '/^@#.*$/ {/^@#:ID.*$/! d}' ${article}
     fi    
+}
+
+# deletes needless Ads and cover pictures
+
+function mod_remove_ads {
+
+ads=$(grep -e '@B.: *.*_ANZ_' ${article})
+
+	if [ "${ads}" ] ; then
+		ads_cp_right=$(grep -n -e '@BA:' ${article} | cut -d ":" -f 1)
+		if [ "${ads_cp_right}" ]; then
+			ba=$((${ads_cp_right}+1))
+			sed -i ''"${ba}"'d' ${article}
+		fi
+        sed -i 's/@B.: *.*_ANZ_.*$//g' ${article}
+	fi
 }
 
 
@@ -189,9 +210,26 @@ if [ "${news}" ] ; then
     if [ -z "${boxtitle}" ]; then
         startbox=$(grep -n '^@KL: *.*$' ${article} | head -n 1 | cut -d ":" -f1)
         entrypoint=$((${startbox}-1))
-        sed -i ''"${entrypoint}"'@KT: Kurznachrichten' ${article}
+        # i in i@KT stands for "insert at line xyz"
+        sed -i ''"${entrypoint}"'i@KT: Kurznachrichten' ${article}
     fi
 fi
+}
+
+##  Module: FILL DACHZEILE IN ZUT ##
+
+function mod_repair_news_headline {
+
+zut=$(grep -e '@SW: *Zahlen & Trends' ${article})
+news=$(grep -e '@SW: *News' ${article})
+
+	if [ "${zut}" ]; then
+		sed -i 's/@D: *.*$/@D:Zahlen \& Trends/g' ${article}
+	fi
+
+	if [ "${news}" ] ; then
+		sed -i 's/@D: *.*$/@D:News/g' ${article}
+	fi
 }
 
 
@@ -515,9 +553,11 @@ function dryrun {
                 # this module removes "Heft-DVD" boxes that make no sense online
                 mod_warnings
                 mod_remove_duplicate
+                mod_remove_ads
                 mod_replace_bookbox
                 mod_prepare_ed_letter
                 mod_prepare_pics_news_zut
+                mod_repair_news_headline
                 mod_repair_news_box
                 mod_prepare_edi
                 mod_repair_urls
