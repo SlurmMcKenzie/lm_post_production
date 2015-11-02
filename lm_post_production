@@ -385,11 +385,11 @@ if [ "${tooltipps}" ]; then
     author=$(grep -e '@A: *$' ${article})
 	
     #find out line number of alone standing pic
-	single_pic=$(grep -n -A2 '@BI' article.txt | grep '@KT' | tail -n1 | cut -d "-" -f1)
+	single_pic=$(grep -n -A2 '@BI' ${article} | grep '@KT' | tail -n1 | cut -d "-" -f1)
 	single_pic_position=$((${single_pic}-2))
 	
     #find out box with lacking pic
-	box=$(grep -n -B3 '@KE' article.txt | grep -n '@KL' | cut -d ":" -f2 | grep -o '[0-9]*')
+	box=$(grep -n -B3 '@KE' ${article} | grep -n '@KL' | cut -d ":" -f2 | grep -o '[0-9]*')
 	box_insert=$((${box}+2))
 	
 	# insert pic in box
@@ -399,7 +399,7 @@ if [ "${tooltipps}" ]; then
 	sed -i "${single_pic_position}"'d' ${article}
 	
     if [ "${trailer}" ]; then
-        for i in $(grep -n '^@KT: *.*$' article.txt | cut -d ":" -f 1); do
+        for i in $(grep -n '^@KT: *.*$' ${article} | cut -d ":" -f 1); do
             # Show text following @KT:
             headlines=$(sed ''"${i}"'!d' ${article} | cut -d ":" -f 2)
             # Keep @V-line (&) but $headline followed by a comma
@@ -512,8 +512,8 @@ function mod_move_finalized_folder {
 
 function mod_repair_editor_abbrevation {
 
-abbrevation=$(grep -n "\((<I>[[:space:]]*.*[[:space:]]<I>)\)" article.txt | grep "[[:space:]]")
-matches=$(grep -o "\((<I>[[:space:]]*.*[[:space:]]<I>)\)" article.txt | grep -c "[[:space:]]" | cut -d ":" -f1 | tail -n -1)
+abbrevation=$(grep -n "\((<I>[[:space:]]*.*[[:space:]]<I>)\)" ${article} | grep "[[:space:]]")
+matches=$(grep -o "\((<I>[[:space:]]*.*[[:space:]]<I>)\)" ${article} | grep -c "[[:space:]]" | cut -d ":" -f1 | tail -n -1)
 
     if [ "${abbrevation}" ]; then
         if [ "${matches}" == 1 ]; then
