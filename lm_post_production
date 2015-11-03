@@ -127,7 +127,6 @@ zut=$(grep -e '@SW: *Zahlen & Trends' ${article})
 
 }
 
-mod_warnings
 
 ##  Module: REMOVE ALL COMMENTS EXCEPT THE ONE WITH ID ##
 
@@ -386,18 +385,19 @@ if [ "${tooltipps}" ]; then
 	
     #find out line number of alone standing pic
 	single_pic=$(grep -n -A2 '@BI' ${article} | grep '@KT' | tail -n1 | cut -d "-" -f1)
-	single_pic_position=$((${single_pic}-2))
+        if [ "${single_pic}" ]; then
+            single_pic_position=$((${single_pic}-2))
 	
-    #find out box with lacking pic
-	box=$(grep -n -B3 '@KE' ${article} | grep -n '@KL' | cut -d ":" -f2 | grep -o '[0-9]*')
-	box_insert=$((${box}+2))
-	
-	# insert pic in box
-	pic=$(sed -n "${single_pic_position}"'p' ${article})
-	sed -i ''"${box_insert}"'i'"${pic}"'' ${article}
-	single_pic_position=$((${single_pic_position}+1))
-	sed -i "${single_pic_position}"'d' ${article}
-	
+            #find out box with lacking pic
+            box=$(grep -n -B3 '@KE' ${article} | grep -n '@KL' | cut -d ":" -f2 | grep -o '[0-9]*')
+            box_insert=$((${box}+2))
+            
+            # insert pic in box
+            pic=$(sed -n "${single_pic_position}"'p' ${article})
+            sed -i ''"${box_insert}"'i'"${pic}"'' ${article}
+            single_pic_position=$((${single_pic_position}+1))
+            sed -i "${single_pic_position}"'d' ${article}
+        fi
     if [ "${trailer}" ]; then
         for i in $(grep -n '^@KT: *.*$' ${article} | cut -d ":" -f 1); do
             # Show text following @KT:
@@ -459,6 +459,34 @@ while true
 }
 
 
+## Module: ERASE EMPTY SPACES IN EDITORS ABBREVATION
+
+function mod_repair_editor_abbrevation {
+
+abbrevation=$(grep -n "\((<I>[[:space:]]*.*[[:space:]]<I>)\)" ${article} | grep "[[:space:]]")
+matches=$(grep -o "\((<I>[[:space:]]*.*[[:space:]]<I>)\)" ${article} | grep -c "[[:space:]]" | cut -d ":" -f1 | tail -n -1)
+
+    if [ "${abbrevation}" ]; then
+        if [ "${matches}" == 1 ]; then
+            sed -i 's/\(<I>.*\) \(.*<I>\)/\1\2/g' ${article}
+        else
+            echo "Several <I>-tagged matches with whitespaces. Please correct."
+        fi
+    fi
+}
+
+
+## Module: REPAIR PERL VIDEO BOX
+
+function mod_repair_perl_video_box {
+
+online=$(grep -o "<U><U>.*$" ${article})
+
+    if [ "${online}" ]; then
+            sed -i 's/<U><U>.*\(http.*plus\).*<U>/<U>\1<U>/g' ${article}
+    fi
+}
+
 ## Module: EXTRACT LISTINGS FROM ARTICLES ##
 
 function mod_extract_listing {
@@ -490,6 +518,18 @@ fi
 }
 
 
+## Module: UPLOAD LISTINGS TO SERVER
+
+function mod_upload_listings {
+
+listing_part=$(pwd | grep -o '.*production/')
+listing_full=${location}"/listings/magazin"${issue_year}"/"${issue_month}"/"
+
+    echo ${listing_full}
+    ls ${listing_full}
+}
+
+
 ## Module: MOVE FINISHED ARTICLES ##
 
 function mod_move_finalized_folder {
@@ -501,39 +541,10 @@ function mod_move_finalized_folder {
 	    echo -e "****\n"
 	else
 	    #...if not, mkdir folder
-	    echo "Folder '2_checked' doesn't exist yet. Please add."
-	    exit 0
-	    # TODO: Folder anlegen: mkdir ../../2_checked
+	    #mkdir ${target_folder}
+        #mod_move_finalized_folder
+        echo "Please create folder '2_checked' by hand."
 	fi
-}
-
-
-## Module: ERASE EMPTY SPACES IN EDITORS ABBREVATION
-
-function mod_repair_editor_abbrevation {
-
-abbrevation=$(grep -n "\((<I>[[:space:]]*.*[[:space:]]<I>)\)" ${article} | grep "[[:space:]]")
-matches=$(grep -o "\((<I>[[:space:]]*.*[[:space:]]<I>)\)" ${article} | grep -c "[[:space:]]" | cut -d ":" -f1 | tail -n -1)
-
-    if [ "${abbrevation}" ]; then
-        if [ "${matches}" == 1 ]; then
-            sed -i 's/\(<I>.*\) \(.*<I>\)/\1\2/g' ${article}
-        else
-            echo "Several <I>-tagged matches with whitespaces. Please correct."
-        fi
-    fi
-}
-
-
-## Module: REPAIR PERL VIDEO BOX
-
-function mod_repair_perl_video_box {
-
-online=$(grep -o "<U><U>.*$" ${article})
-
-    if [ "${online}" ]; then
-            sed -i 's/<U><U>.*\(http.*plus\).*<U>/<U>\1<U>/g' ${article}
-    fi
 }
 
 
@@ -681,12 +692,14 @@ function convert {
                 cd ${working_dir}/${folder}
                 # after everything is fine with article.txt, start extracting the listings
                 mod_extract_listing
-
+                mod_upload_listings
+                
                 # go back in your subfolder, for example "kki"
                 cd ..
 
                 # check if $target_folder exists and move just finalized $folder there
                 mod_move_finalized_folder
+                
             fi
         done
     else
