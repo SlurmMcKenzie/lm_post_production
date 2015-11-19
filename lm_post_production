@@ -1,9 +1,8 @@
 #!/bin/bash
 
 # This script converts all your "article.txt" files to html-format.
-# for this, you have to put all your articles in one subfolder and start this script from there
-# Then it converts all listings
-# TODO Sanity Checks
+# for this, you have to put all your articles in one subfolder and start this 
+# script from there. Then it converts all listings
 
 # Filenames
 article=article.txt
@@ -522,11 +521,23 @@ fi
 
 function mod_upload_listings {
 
-listing_part=$(pwd | grep -o '.*production/')
-listing_full=${location}"/listings/magazin"${issue_year}"/"${issue_month}"/"
+if [[ -d listing ]]; then
 
-    echo ${listing_full}
-    ls ${listing_full}
+listing_part=$(pwd | grep -o '.*production/')
+listing_full=${listing_part}"listings/magazin/"${issue_year}"/"
+sw=$(grep -o '@SW:\( *.*\)' ${article} | cut -d':' -f2 | tr " " "_" | tr "[A-Z]" "[a-z]")
+
+    if [[ -d ${listing_full}${issue_month}"/"${sw} ]]; then   
+    	cd listing
+        mv -v listing* ${listing_full}${issue_month}"/"${sw}
+        cd ..
+        rmdir listing
+    else
+        echo "Create directory for listing"
+        mkdir -vp ${listing_full}${issue_month}"/"${sw}
+        mod_upload_listings
+    fi
+fi
 }
 
 
