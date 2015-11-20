@@ -58,29 +58,29 @@ function get_help {
     echo -e "\tlm_post_production.sh\n"
 
     echo -e "${bold}SYNOPSIS${normal}"
-    echo -e "\tlm_post_production.sh --help | --dryrun | --convert | --xml\n"
+    echo -e "\tlm_post_production.sh --help | --repair | --make_listings | --upload\n"
 
     echo -e "${bold}DESCRIPTION${normal}"
     echo -e "\tPut this script in your own folder in '1_export'. It converts 
     \t'.txt' into '.html' files, logs error messages in 'error.log'. And
-    \t it can generates XML files.\n"
+    \t it generates XML files for upload via sf2xml.\n"
 
-    echo -e "\tIts submodules in 'modules/' remove unwanted artefacts.
-    \tFor every article the script displays the converted '.html' file in 
-    \tin Firefox (-d). If that looks alright the script will extract all
-    \tlistings and move the whole folder including the listings to
-    \t'2_checked' (-c). Finally it generates XML files and repairs some
-    \tdetails in those (-x).\n"
+    echo -e "\tFor every article the script displays the repaired and converted  
+    \t'.html' file in Firefox (-r). If that looks alright the script will 
+    \textract all listings and move them to the ftp-server (-m). Then it moves
+    \tthe whole folder including the listings to '2_checked'. Finally (-u)
+    \tit generates XML files and repairs some details of it to 
+    \tmake the article ready for upload.\n"
 
     echo -e "${bold}OPTIONS${normal}"
     echo -e "\t-h / --help"
     echo -e "\t\tDisplay this help.\n"
-    echo -e "\t-d / --dryrun"
-    echo -e "\t\tStarts a testrun that only collects 'sf'-errors in 'error.log'\n"
-    echo -e "\t-c / --convert"
-    echo -e "\t\tRun this script and convert files.\n"
-    echo -e "\t-x / --xml"
-    echo -e "\t\tConverts HTML to XML files. Shows errors and prepares XML for upload.\n"
+    echo -e "\t-r / --repair"
+    echo -e "\t\tCollects 'sf'-errors in 'error.log' and repairs Bugs from export\n"
+    echo -e "\t-m / --make_listings"
+    echo -e "\t\tConverts and uploads listings. Moves folders to '2_checked'.\n"
+    echo -e "\t-u / --upload"
+    echo -e "\t\tConverts HTML to XML files and those for upload.\n"
 
     echo -e "${bold}AUTHOR${normal}"
     echo -e "\tWritten by Kristian Kißling\n"
@@ -99,31 +99,69 @@ function get_help {
 
 function mod_warnings {
 
-warning1=$(grep -o '^@[A-Z]*:' ${article} | grep -B1 '@KE'  | grep -n '@L')
+# warns, if unwanted elements are found inside a box
+warning_a1=$(grep -o '^@[A-Z]*:' ${article} | grep -B1 '@KE' | grep -n '@L:')
+warning_a2=$(grep -o '^@[A-Z]*:' ${article} | grep -B1 '@KE' | grep -n '@BI:')
+warning_a3=$(grep -o '^@[A-Z]*:' ${article} | grep -B1 '@KE' | grep -n '@B:')
+warning_a4=$(grep -o '^@[A-Z]*:' ${article} | grep -B1 '@KE' | grep -n '@TT:')
 
-    if [ "${warning1}" ]; then
+    if [ "${warning_a1}" ] || [ "${warning_a2}" ] || [ "${warning_a3}" ] || [ "${warning_a4}" ]; then
         rot=$(tput setaf 1)
         reset=$(tput sgr0)
-        echo -e ${rot}"@KE-TAG IN BOX SEEMS TO BE OUT OF PLACE IN" ${article}". PLEASE CORRECT BY HAND." ${reset}
+        echo -e ${rot}"Pictures or Tables seem to be inside a box in " ${folder} ". PLEASE CORRECT BY HAND." ${reset}
     fi
 
-warning2=$(grep -o '^@[A-Z]*:' ${article} | grep -B2 '@KE'  | grep -n '@B:')
-
-    if [ "${warning2}" ]; then
-        rot=$(tput setaf 1)
-        reset=$(tput sgr0)
-        echo -e ${rot}"THERE SEEMS TO BE A PICTURE IN A BOX" ${article}". PLEASE CORRECT BY HAND." ${reset}
-    fi
-
+# warns, that pictures and news items are probably paired wrong
 news=$(grep -e '@SW: *News' ${article})
 zut=$(grep -e '@SW: *Zahlen & Trends' ${article})
 
 	if [ "${news}" ] || [ "${zut}" ] ; then
 		rot=$(tput setaf 1)
 		reset=$(tput sgr0)
-		echo -e ${rot}"PLEASE CHECK PICTURE ORDER IN" ${article}" AND CORRECT BY HAND."${reset}
+		echo -e ${rot}"Please check if pictures stick to text in " ${folder}" and CORRECT BY HAND."${reset}
 	fi
 
+# warns of wrong picture order or missing pics
+pic_order=$(grep -o "^@B: *Abbildung [0-9]*" ${article} | cut -d ":" -f2)
+
+if [ "${pic_order}" ]; then
+    pic_counts=()
+    pic_counts+=$(grep -c '^@B: *Abbildung [0-9]*' ${article})
+    
+    for i in $(seq 1 ${pic_counts[@]}); do
+        assumed_order="Abbildung "${i}
+        actual_order=$(grep -o "^@B: *Abbildung [0-9]*" ${article} | cut -d ":" -f2 | sed -n "${i}p")
+        if [ "${assumed_order}" == "${actual_order}" ]; then
+            continue
+        else
+            rot=$(tput setaf 1)
+            reset=$(tput sgr0)
+            echo -e ${rot}"Picture order seems to be wrong or a picture is missing in" ${folder}"."${reset}
+            break 2
+        fi
+    done
+fi
+
+# warns of wrong listing order or missing listings
+listing_order=$(grep -o "^@KT: *Listing [0-9]*" ${article} | cut -d ":" -f2)
+
+if [ "${listing_order}" ]; then
+    listing_counts=()
+    listing_counts+=$(grep -c '^@KT: *Listing [0-9]*' ${article})
+    
+    for i in $(seq 1 ${listing_counts[@]}); do
+        assumed_listing_order="Abbildung "${i}
+        actual_listing_order=$(grep -o "^@B: *Abbildung [0-9]*" ${article} | cut -d ":" -f2 | sed -n "${i}p")
+        if [ "${assumed_listing_order}" == "${actual_listing_order}" ]; then
+            continue
+        else
+            rot=$(tput setaf 1)
+            reset=$(tput sgr0)
+            echo -e ${rot}"Listing order seems to be wrong or a listing is missing in" ${folder}"."${reset}
+            break 2
+        fi
+    done
+fi
 }
 
 
@@ -521,17 +559,17 @@ fi
 
 function mod_upload_listings {
 
-if [[ -d listing ]]; then
+if [[ -d listings ]]; then
 
 listing_part=$(pwd | grep -o '.*production/')
 listing_full=${listing_part}"listings/magazin/"${issue_year}"/"
 sw=$(grep -o '@SW:\( *.*\)' ${article} | cut -d':' -f2 | tr " " "_" | tr "[A-Z]" "[a-z]")
 
     if [[ -d ${listing_full}${issue_month}"/"${sw} ]]; then   
-    	cd listing
+    	cd listings
         mv -v listing* ${listing_full}${issue_month}"/"${sw}
         cd ..
-        rmdir listing
+        rmdir listings
     else
         echo "Create directory for listing"
         mkdir -vp ${listing_full}${issue_month}"/"${sw}
@@ -583,10 +621,10 @@ delugdvd=$(grep -e '<kicker>In eigener Sache: DELUG-DVD</kicker>' ${article})
 
 
 
-#####   Main: "-d" - START A DRYRUN #####
+#####   Main: "-d" - START A repair #####
 #       Repairs all kinds of bugs before conversion and shows result
 
-function dryrun {
+function repair {
 
     # check, if location is your own subfolder in "1_export", for example "kki"
     sleep 2
@@ -683,7 +721,7 @@ function dryrun {
 
 ##### Main: "-c" - CONVERT LISTINGS AND MOVE FOLDERS #######
 
-function convert {
+function make_listings {
 
     # check, if location is your own subfolder in "1_export", for example "kki"
     if [ -d ${exportpath} ]; then
@@ -721,7 +759,7 @@ function convert {
 
 
 # CONVERT TXT TO XML AND CHANGE XML FILES
-function xml {
+function upload {
 
     # check, if location is in "2_checked"
     if [ -d ${target_folder} ]; then
@@ -764,11 +802,11 @@ function xml {
 function start {
     if [ "${1}" == "" ] || [ "${1}" == "-h" ] || [ "${1}" == "--help" ]; then
         get_help
-    elif [ "${1}" == "-d" ] || [ "${1}" == "--dryrun" ]; then
-        dryrun
-    elif [ "${1}" == "-c" ] || [ "${1}" == "--convert" ]; then
-        convert
-    elif [ "${1}" == "-x" ] || [ "${1}" == "--xml" ]; then
+    elif [ "${1}" == "-r" ] || [ "${1}" == "--repair" ]; then
+        repair
+    elif [ "${1}" == "-m" ] || [ "${1}" == "--make_listings" ]; then
+        make_listings
+    elif [ "${1}" == "-u" ] || [ "${1}" == "--upload" ]; then
         xml
     fi
 }
