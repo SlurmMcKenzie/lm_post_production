@@ -16,7 +16,7 @@ working_dir=$(pwd)
 bin_dir="/opt/lnm/bin"
 exportpath=${working_dir}"/../../1_export"
 target_folder=${working_dir}"/../../2_checked"
-editor=/usr/bin/gedit
+editor=/usr/bin/vim
 browser=/usr/bin/firefox
 
 # Magazine Issue
@@ -481,10 +481,8 @@ function mod_repair_urls {
 urls_space=$(grep -o "\(<U> *.*[[:space:]]*.*<U>\)" ${article} | grep "[[:space:]]")
 urls_brkt=$(grep -o "\(<U> *.*<U>]\)\|\(http:/<U>\)\|\(<U> *.*]\)\|\(]<U>[[:graph:]]\)" ${article})
 
-    if [ "${urls_space}" ]; then
-        sed -i 's/\(<U>.*\) \(.*<U>\)/\1\2/g' ${article}
-    elif [ "${urls_brkt}" ]; then
-        sed -i 's/\(\/<U>\)/\/\//g; s/\(<U>]\)/<U>/g; s/]$/<U>/g; s/\(]<U>\)/<U> /g' ${article}
+    if [ "${urls_space}" ] || [ "${urls_brkt}" ]; then
+        sed -i 's/\(<U>.*\) \(.*<U>\)/\1\2/g; s/\(\/<U>\)/\/\//g; s/\(<U>]\)/<U>/g; s/]$/<U>/g; s/\(]<U>\)/<U> /g' ${article}
     fi
 }
 
