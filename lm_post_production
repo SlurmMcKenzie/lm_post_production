@@ -731,6 +731,8 @@ function repair {
                             rm ${working_dir}/${error_log}
                             sleep 2
                             ${editor} ${article} &&
+                            # Pass changes on TXT files to HTML files
+                            ${bin_dir}/${satzfertig} -Hq ${article} ${article_html} 2>&1 &&
 
                             read -p "Move on to the next article? [y/n]" moveon
                                 case ${moveon} in
