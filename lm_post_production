@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # This script converts all your "article.txt" files to html-format.
-# for this, you have to put all your articles in one subfolder and start this 
+# for this, you have to put all your articles in one subfolder and start this
 # script from there. Then it converts all listings
 
 # Filenames
@@ -24,33 +24,43 @@ issue_year=$(pwd | grep -o "[2][0][0-9][0-9]")
 issue_month=$(pwd | grep -o "[2][0][0-9][0-9]..." | tail -c 3)
 
 ## Convert article.txt to UTF-8 otherwise script breaks
- 
+
 function convert_to_utf8 {
-    
+
+if [ -e article.txt ]; then
     chmod 755 ${article}
     ${iconv} -f ISO-8859-15 -t UTF-8 ${article} -o article.txt.tmp
     wait
     mv article.txt.tmp article.txt
     wait
+else
+	echo -e "File article.txt doesn't seem to exist."
+	exit 0
+fi
 }
 
 
 ## Convert article.txt back to ISO-8859-15
 
 function convert_to_iso8859_15 {
-    
+
+if [ -e article.txt ]; then
     chmod 755 ${article}
     ${iconv} -f UTF-8 -t ISO-8859-15 ${article} -o article.txt.tmp
     wait
     mv article.txt.tmp article.txt
     wait
+else
+    echo -e "File article.txt doesn't seem to exist."
+	exit 0
+fi
 }
 
 
 ##  Module: DISPLAY HELPFILE FOR THE PROGRAM ##
 
 function get_help {
-    
+
     bold=`tput bold`
     normal=`tput sgr0`
 
@@ -61,15 +71,15 @@ function get_help {
     echo -e "\tlm_post_production.sh --help | --repair | --make_listings | --upload\n"
 
     echo -e "${bold}DESCRIPTION${normal}"
-    echo -e "\tPut this script in your own folder in '1_export'. It converts 
+    echo -e "\tPut this script in your own folder in '1_export'. It converts
     \t'.txt' into '.html' files, logs error messages in 'error.log'. And
     \t it generates XML files for upload via sf2xml.\n"
 
-    echo -e "\tFor every article the script displays the repaired and converted  
-    \t'.html' file in Firefox (-r). If that looks alright the script will 
+    echo -e "\tFor every article the script displays the repaired and converted
+    \t'.html' file in Firefox (-r). If that looks alright the script will
     \textract all listings and move them to the ftp-server (-m). Then it moves
     \tthe whole folder including the listings to '2_checked'. Finally (-u)
-    \tit generates XML files and repairs some details of it to 
+    \tit generates XML files and repairs some details of it to
     \tmake the article ready for upload.\n"
 
     echo -e "${bold}OPTIONS${normal}"
@@ -127,7 +137,7 @@ pic_order=$(grep -o "^@B: *Abbildung [0-9]*" ${article} | cut -d ":" -f2)
 if [ "${pic_order}" ]; then
     pic_counts=()
     pic_counts+=$(grep -c '^@B: *Abbildung [0-9]*' ${article})
-    
+
     for i in $(seq 1 ${pic_counts[@]}); do
         assumed_order="Abbildung "${i}
         actual_order=$(grep -o "^@B: *Abbildung [0-9]*" ${article} | cut -d ":" -f2 | sed -n "${i}p")
@@ -137,7 +147,7 @@ if [ "${pic_order}" ]; then
             rot=$(tput setaf 1)
             reset=$(tput sgr0)
             echo -e ${rot}"Picture order seems to be wrong or a picture is missing in" ${folder}"."${reset}
-            break 2
+            break
         fi
     done
 fi
@@ -148,17 +158,17 @@ listing_order=$(grep -o "^@KT: *Listing [0-9]*" ${article} | cut -d ":" -f2)
 if [ "${listing_order}" ]; then
     listing_counts=()
     listing_counts+=$(grep -c '^@KT: *Listing [0-9]*' ${article})
-    
+
     for i in $(seq 1 ${listing_counts[@]}); do
-        assumed_listing_order="Abbildung "${i}
-        actual_listing_order=$(grep -o "^@B: *Abbildung [0-9]*" ${article} | cut -d ":" -f2 | sed -n "${i}p")
+        assumed_listing_order="Listing "${i}
+        actual_listing_order=$(grep -o "^@KT: *Listing [0-9]*" ${article} | cut -d ":" -f2 | sed -n "${i}p")
         if [ "${assumed_listing_order}" == "${actual_listing_order}" ]; then
             continue
         else
             rot=$(tput setaf 1)
             reset=$(tput sgr0)
             echo -e ${rot}"Listing order seems to be wrong or a listing is missing in" ${folder}"."${reset}
-            break 2
+            break
         fi
     done
 fi
@@ -174,9 +184,9 @@ function mod_remove_comments {
 occurence=$(grep -c '^@#' ${article})
 
     if [ "${occurence}" -gt "2" ]; then
-        
+
         sed -i '/^@#.*$/ {/^@#:ID.*$/! d}' ${article}
-    fi    
+    fi
 }
 
 # deletes needless Ads and cover pictures
@@ -212,8 +222,8 @@ function mod_find_broken_boxes {
                         sed -i "${j}","${k}"'d' ${article}
                         counter=$((${counter} + 1))
                         echo "Box deleted."
-                        
-                        if [[ ${counter} -le ${occurences} ]]; then 
+
+                        if [[ ${counter} -le ${occurences} ]]; then
 							mod_remove_boxes
 						else
 							break 2
@@ -225,7 +235,7 @@ function mod_find_broken_boxes {
                         ;;
 			esac
 			break
-		fi	
+		fi
 	done
 }
 
@@ -233,7 +243,7 @@ function mod_remove_boxes {
 
 	startbox=$(grep -n -e "^@KT: *Inhalt\|^@KT: *D[eE][lL][uU][gG]\|^@KT: *H[Ee][fF][tT]-DVD" ${article} | cut -d ":" -f1)
 	occurences=$(grep -c -e "^@KT: *Inhalt\|^@KT: *D[eE][lL][uU][gG]\|^@KT: *H[Ee][fF][tT]-DVD" ${article})
-	
+
 	if [[ "${startbox}" ]]; then
 			for j in ${startbox}; do
 				mod_find_broken_boxes
@@ -252,7 +262,7 @@ dupimage=$(grep -c 'DVDgold' ${article})
 secimage=$(grep -e 'DVDgold' ${article} | tail -1)
 
     if { [ ${keyword} ] && [ ${category} ] ;} && [ ${dupimage} == 2 ]; then
-        
+
         # use "|" instead of "/" als delimiter because of path in secimage
         sed -i "s|$secimage||g" ${article}
     fi
@@ -319,7 +329,7 @@ edi=$(grep -e '@R: *Editorial' ${article})
         # remove empty tags
         sed -i '/@V:.*$/d' ${article}
         sed -i '/@A:.*$/d' ${article}
-        
+
         # switch jans picture with his signature
         upper_img=$(grep -n "@BA\: *.*unterschrift.*$" ${article} | cut -d ":" -f 1)
         lower_img=$(grep -n "@B\: *.*Chefredakteur.*$" ${article} | cut -d ":" -f 1)
@@ -330,7 +340,7 @@ edi=$(grep -e '@R: *Editorial' ${article})
             upper=$(grep "@BA: *.*" ${article})
             lower=$(grep "@BI: *.*" ${article})
             lower_bu=$(grep "@B: *.*" ${article})
-            
+
             sed -i ''"${upper_img}"'c'"${lower}" ${article}
             sed -i ''"${lower_img}"'c'"${upper}" ${article}
             sed -i ''"${upper_plus_one}"'c'"${lower_bu}" ${article}
@@ -352,7 +362,7 @@ buecher=$(grep -e '@SW:*B.cher' ${article})
 infobox=$(grep -c '^@IT:.*Info' ${article})
 
     if [ "${buecher}" ] && [ "${infobox}" == 2 ]; then
-        
+
         sed -i '0,/IT\:.*fo$/s//KT:Info 1/; /IT\:.*fo$/s//KT:Info 2/' ${article}
         sed -i 's/@IL:/@KL:/g' ${article}
     fi
@@ -367,7 +377,7 @@ leserbriefe=$(grep -e '@SW:*Leserbriefe' ${article})
 dachzeile=$(grep -e '@D: *$' ${article})
 
 if [ "${leserbriefe}" ] && [ "${dachzeile}" ]; then
-    
+
     sed -i 's/@D:/@D:Auf den Punkt gebracht/g' ${article}
     sed -i 's/@T:/@T:Leserbriefe/g' ${article}
 fi
@@ -383,11 +393,11 @@ news=$(grep -e '@SW: *News' ${article})
 zut=$(grep -e '@SW: *Zahlen & Trends' ${article})
 
 if [ "${news}" ] || [ "${zut}" ] ; then
-    
+
     # First remove empty @V: and @A:-Tags
     sed -i '/@V:.*$/d' ${article}
     sed -i '/@A:.*$/d' ${article}
-    
+
     # Now switch lines for pictures
     countr=$(grep -c '^@BC:' ${article})
     for i in $(seq 1 ${countr}); do
@@ -419,16 +429,16 @@ tooltipps=$(grep -e '@T: *Tooltipps' ${article})
 if [ "${tooltipps}" ]; then
     trailer=$(grep -e '@V: *$' ${article})
     author=$(grep -e '@A: *$' ${article})
-	
+
     #find out line number of alone standing pic
 	single_pic=$(grep -n -A2 '@BI' ${article} | grep '@KT' | tail -n1 | cut -d "-" -f1)
         if [ "${single_pic}" ]; then
             single_pic_position=$((${single_pic}-2))
-	
+
             #find out box with lacking pic
             box=$(grep -n -B3 '@KE' ${article} | grep -n '@KL' | cut -d ":" -f2 | grep -o '[0-9]*')
             box_insert=$((${box}+2))
-            
+
             # insert pic in box
             pic=$(sed -n "${single_pic_position}"'p' ${article})
             sed -i ''"${box_insert}"'i'"${pic}"'' ${article}
@@ -458,14 +468,18 @@ if [ "${tooltipps}" ]; then
 fi
 }
 
-## Module: REMOVE WHITESPACES FROM URLs
+
+## Module: REMOVE WHITESPACES, SQUARE BRACKETS FROM URLs
 
 function mod_repair_urls {
 
-urls=$(grep -o "\(<U> *.*[[:space:]]*.*<U>\)" ${article} | grep "[[:space:]]")
-    
-    if [ "${urls}" ]; then
+urls_space=$(grep -o "\(<U> *.*[[:space:]]*.*<U>\)" ${article} | grep "[[:space:]]")
+urls_brkt=$(grep -o "\(<U> *.*<U>]\)\|\(http:/<U>\)\|\(<U> *.*]\)\|\(]<U>[[:graph:]]\)" ${article})
+
+    if [ "${urls_space}" ]; then
         sed -i 's/\(<U>.*\) \(.*<U>\)/\1\2/g' ${article}
+    elif [ "${urls_brkt}" ]; then
+        sed -i 's/\(\/<U>\)/\/\//g; s/\(<U>]\)/<U>/g; s/]$/<U>/g; s/\(]<U>\)/<U> /g' ${article}
     fi
 }
 
@@ -531,7 +545,7 @@ function mod_extract_listing {
 avail=$(grep "@KT: *Listing 1" ${article})
 
 if [ "$avail" ]; then
-    
+
     if [ -d listings ]; then
         rm -fR listings
     fi
@@ -565,7 +579,7 @@ listing_part=$(pwd | grep -o '.*production/')
 listing_full=${listing_part}"listings/magazin/"${issue_year}"/"
 sw=$(grep -o '@SW:\( *.*\)' ${article} | cut -d':' -f2 | tr " " "_" | tr "[A-Z]" "[a-z]")
 
-    if [[ -d ${listing_full}${issue_month}"/"${sw} ]]; then   
+    if [[ -d ${listing_full}${issue_month}"/"${sw} ]]; then
     	cd listings
         mv -v listing* ${listing_full}${issue_month}"/"${sw}
         cd ..
@@ -592,7 +606,8 @@ function mod_move_finalized_folder {
 	    #...if not, mkdir folder
 	    #mkdir ${target_folder}
         #mod_move_finalized_folder
-        echo "Please create folder '2_checked' by hand."
+        echo "Please create folder '2_checked' by hand and call '-m'-option again."
+        exit 0
 	fi
 }
 
@@ -621,7 +636,7 @@ delugdvd=$(grep -e '<kicker>In eigener Sache: DELUG-DVD</kicker>' ${article})
 
 
 
-#####   Main: "-d" - START A repair #####
+#####   Main: "-r" - repair txt-files #####
 #       Repairs all kinds of bugs before conversion and shows result
 
 function repair {
@@ -633,7 +648,7 @@ function repair {
         # make error.log for sf if non-existing
         if [ ! -f ${working_dir}/${error_log} ]; then
             touch ${working_dir}/${error_log}
-            chmod a+x ${working_dir}/${error_log}
+            chmod u+x ${working_dir}/${error_log}
         fi
 
         ## Insert modules
@@ -645,7 +660,7 @@ function repair {
                 echo -e "================================"
                 # convert to UTF-8
                 convert_to_utf8
-                
+
                 # this module removes "Heft-DVD" boxes that make no sense online
                 mod_warnings
                 mod_remove_duplicate
@@ -662,25 +677,25 @@ function repair {
                 mod_prepare_tooltipps
                 mod_remove_comments
                 mod_remove_boxes
-                
+
                 # convert back to ISO-8859-15
                 convert_to_iso8859_15
-                
+
                 mod_html_check
-                                
+
                 while true
                     do
                     read -p "Do you want to change something on the article and/or take a look at the 'error.log' now? [y/n]" error
                         case ${error} in
-                        y)                            
+                        y)
                             echo "Error Log:"
                             cat ${working_dir}/${error_log} | more
                             echo -e "\n"
-                            echo "Starting Editor..." 
+                            echo "Starting Editor..."
                             rm ${working_dir}/${error_log}
                             sleep 2
                             ${editor} ${article} &&
-                            
+
                             read -p "Move on to the next article? [y/n]" moveon
                                 case ${moveon} in
                                 y)
@@ -703,7 +718,7 @@ function repair {
                                     exit 0
                                     ;;
                                 esac
-                            break      
+                            break
                             ;;
                         esac
                     done
@@ -711,7 +726,7 @@ function repair {
                 cd ..
             fi
         done
-        echo -e "\nIf all articles look fine, you should now call 'lm_post_production -c' to extract listings and prepare files for a proper XML export.\n"
+        echo -e "\nIf all articles look fine, you should now call 'lm_post_production -m' to extract listings and prepare files for a proper XML export.\n"
     else
 	echo -e "You probably started this script from the wrong dir"
         exit 0
@@ -719,7 +734,7 @@ function repair {
 }
 
 
-##### Main: "-c" - CONVERT LISTINGS AND MOVE FOLDERS #######
+##### Main: "-m" - CONVERT LISTINGS AND MOVE FOLDERS #######
 
 function make_listings {
 
@@ -742,13 +757,13 @@ function make_listings {
                 # after everything is fine with article.txt, start extracting the listings
                 mod_extract_listing
                 mod_upload_listings
-                
+
                 # go back in your subfolder, for example "kki"
                 cd ..
 
                 # check if $target_folder exists and move just finalized $folder there
                 mod_move_finalized_folder
-                
+
             fi
         done
     else
@@ -757,8 +772,9 @@ function make_listings {
     fi
 }
 
-
+##### Main -u: Prepare XML files for Upload
 # CONVERT TXT TO XML AND CHANGE XML FILES
+
 function upload {
 
     # check, if location is in "2_checked"
@@ -767,10 +783,10 @@ function upload {
         if [ "ls -A ${target_folder}" ]; then
             # change into '2_checked'
             cd ${target_folder}
-            
+
             # show all folders an start conversion
             ls -d [0-9][0-9][0-9]*
-        
+
             read -p "Convert all listed articles to XML - and repair XML files afterwards? [y/n]" yesyoucan
                 case ${yesyoucan} in
                 y | j)
@@ -781,11 +797,11 @@ function upload {
                     exit 0
                     ;;
                 esac
-            
+
         # repair things before conversion starts
         # list folders in '2_checked' and ls into it one by one
             for folder in $(ls -d [0-9][0-9][0-9]*); do
-                if [ -d ${target_folder}/${folder} ]; then 
+                if [ -d ${target_folder}/${folder} ]; then
                     cd ${target_folder}/${folder}
                     mod_repair_xml
                 fi
@@ -800,6 +816,7 @@ function upload {
 }
 
 function start {
+
     if [ "${1}" == "" ] || [ "${1}" == "-h" ] || [ "${1}" == "--help" ]; then
         get_help
     elif [ "${1}" == "-r" ] || [ "${1}" == "--repair" ]; then
@@ -807,7 +824,7 @@ function start {
     elif [ "${1}" == "-m" ] || [ "${1}" == "--make_listings" ]; then
         make_listings
     elif [ "${1}" == "-u" ] || [ "${1}" == "--upload" ]; then
-        xml
+        upload
     fi
 }
 
