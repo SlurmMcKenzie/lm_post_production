@@ -199,6 +199,20 @@ occurence_id=$(grep -c '^@#: *ID: *[0-9]' ${article})
     fi
 }
 
+function mod_insecurity_pic {
+
+# remove standard-pic from Insec if there are two pics or more
+#insec=$(grep -e '@SW: *Insecurity' ${article})
+vis=$(grep -n '@BA:.*Visual_insecurity' ${article} | cut -d ":" -f 1)
+titlepic=$(grep -e '@BI:.*123[rR][fF].*' ${article})
+artefakt=$(grep -n '@BI:.*123[rR][fF].*' ${article} | cut -d ":" -f 1 | tail -n -1)
+
+    if [[ "${vis}" ]] && [[ "${titlepic}" ]]; then
+	sed -i ''"${vis}"'c'"${titlepic}" ${article}
+	artefakt=$(grep -n '@BI:.*123[rR][fF].*' ${article} | cut -d ":" -f 1 | tail -n -1)
+	sed -i ''"${artefakt}"'d' ${article}
+    fi
+}
 
 # deletes needless Ads and cover pictures
 
@@ -704,6 +718,7 @@ function repair {
                 # this module removes "Heft-DVD" boxes that make no sense online
                 mod_warnings
                 mod_remove_duplicate
+                mod_insecurity_pic
                 mod_remove_ads
                 mod_replace_bookbox
                 mod_prepare_ed_letter
