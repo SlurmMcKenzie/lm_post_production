@@ -75,9 +75,9 @@ function get_help {
     \t'.txt' into '.html' files, logs error messages in 'error.log'. And
     \t it generates XML files for upload via sf2xml.\n"
 
-    echo -e "\tFor every article the script checks (-c), if the Indesign Export 
-    \tworked out and there exists a file 'article.txt' in every folder. The user only 
-    \t has to start the script with this option once, in the beginning of the process. 
+    echo -e "\tFor every article the script checks (-c), if the Indesign Export
+    \tworked out and there exists a file 'article.txt' in every folder. The user only
+    \t has to start the script with this option once, in the beginning of the process.
     \tWith the Repair-Switch (-r) the script displays the repaired and converted
     \t'.html' file in Firefox. If that looks alright the script will
     \textract all listings and move them to the ftp-server (-m). Then it moves
@@ -182,17 +182,23 @@ fi
 
 ##  Module: REMOVE ALL COMMENTS EXCEPT THE ONE WITH ID ##
 
-function mod_remove_comments {
+function mod_repair_comments {
 
 # Deletes every comment except that @#:ID:...
+# Shows a message if no ID at all is found
 # '/Delete this/ {/Apart from that/! d}'
 occurence=$(grep -c '^@#' ${article})
+occurence_id=$(grep -c '^@#: *ID: *[0-9]' ${article})
 
-    if [ "${occurence}" -gt "2" ]; then
-
+    if [ "${occurence}" -gt "1" ]; then
         sed -i '/^@#.*$/ {/^@#:ID.*$/! d}' ${article}
     fi
+
+    if [ "${occurence_id}" -lt "1" ]; then
+        echo "The @#:ID seems to be lacking, please correct."
+    fi
 }
+
 
 # deletes needless Ads and cover pictures
 
@@ -648,7 +654,7 @@ function check {
             if [ -d ${working_dir}/${folder} ]; then
 				# and dive into it
                 cd ${working_dir}/${folder}
-                
+
 				if [ -f ${article} ]; then
 					continue
 				else
@@ -660,7 +666,7 @@ function check {
         if [ ${missing} ]; then
 				echo -e "Please ask Layout to export the missing 'article.txt' file(s)."
 			else
-				echo -e "All 'article.txt' files seem to be in place. Please continue with 'lm_post_production -r'." 
+				echo -e "All 'article.txt' files seem to be in place. Please continue with 'lm_post_production -r'."
         fi
     else
 		echo -e "You probably started this script from the wrong dir. Please read 'DESCRIPTION' in help section."
@@ -709,7 +715,7 @@ function repair {
                 mod_repair_editor_abbrevation
                 mod_repair_perl_video_box
                 mod_prepare_tooltipps
-                mod_remove_comments
+                mod_repair_comments
                 mod_remove_boxes
 
                 # convert back to ISO-8859-15
