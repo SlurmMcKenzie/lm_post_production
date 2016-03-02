@@ -504,8 +504,9 @@ if [ "${tooltipps}" ]; then
             if [[ ${count_tt} ]]; then
                 work=$(grep -o '<R>.*<R>' ${count_tt})
                 for i in ${work}; do
+		    i_new=$(echo ${i} | sed 's/\(\/\)/\\\1/')
                     cd ${back}
-                    sed  's/\(@ZKT.*$\)/'"${i}"'\n\1 /' ${article}
+                    sed  's/\(@ZKT.*$\)/'"${i_new}"'\n\1 /' ${article}
                     cd ${forth}
                 done
             fi
