@@ -490,6 +490,29 @@ if [ "${tooltipps}" ]; then
     sed -i 's/@KT:/@ZKT:/g' ${article}
     # replace all BI-Tags except one
     #sed -i '/Visual_Tooltipps/!s/@BI:/@C:/g' ${article}
+    back=$(pwd)
+    cd ../../../../../../
+    tt_one=$(ls | grep -e '_txt')
+    tt_two=$(ls | grep -e 'tooltipp')
+
+    if [[ -d ${tt_one} ]]; then
+        cd ${tt_one}
+        find_tt=$(find . -type d -name "*tooltipp*" -print)
+        cd ${find_tt}
+        forth=$(pwd)
+        count_tt=$(grep -e '@T: *Tooltipps' *.txt | cut -d ":" -f 1)
+            if [[ ${count_tt} ]]; then
+                work=$(grep -o '<R>.*<R>' ${count_tt})
+                for i in ${work}; do
+                    cd ${back}
+                    sed  's/\(@ZKT.*$\)/'"${i}"'\n\1 /' ${article}
+                    cd ${forth}
+                done
+            fi
+        cd ${back}
+    else
+        cd ${back}
+    fi
 fi
 }
 
