@@ -445,6 +445,7 @@ if [ "${news}" ] || [ "${zut}" ] ; then
 fi
 }
 
+
 ## Module: PREPARE TOOLTIPPS ##
 
 function mod_prepare_tooltipps {
@@ -490,6 +491,19 @@ if [ "${tooltipps}" ]; then
     sed -i 's/@KT:/@ZKT:/g' ${article}
     # replace all BI-Tags except one
     #sed -i '/Visual_Tooltipps/!s/@BI:/@C:/g' ${article}
+fi
+}
+
+
+
+## Module: Import stars in Tooltipps
+
+function mod_tooltipps_stars {
+
+tooltipps_stars=$(grep -e '@T: *Tooltipps' ${article})
+
+if [ "${tooltipps_stars}" ]; then
+
     back=$(pwd)
     cd ../../../../../../
     tt_one=$(ls | grep -e '_txt')
@@ -504,10 +518,10 @@ if [ "${tooltipps}" ]; then
             if [[ ${count_tt} ]]; then
                 work=$(grep -o '<R>.*<R>' ${count_tt})
                 for i in ${work}; do
-		    i_new=$(echo ${i} | sed 's/\(\/\)/\\\1/')
-                    cd ${back}
-                    sed  's/\(@ZKT.*$\)/'"${i_new}"'\n\1 /' ${article}
-                    cd ${forth}
+                    i_new=$(echo ${i} | sed 's/\(\/\)/\\\1/')
+		    cd ${back}
+                    sed  -i 's/\(@ZKT.*$\)/'"${i_new}"'\n\1 /' ${article}
+		    cd ${forth}
                 done
             fi
         cd ${back}
@@ -516,6 +530,7 @@ if [ "${tooltipps}" ]; then
     fi
 fi
 }
+
 
 
 ## Module: REMOVE WHITESPACES, SQUARE BRACKETS FROM URLs
@@ -753,8 +768,9 @@ function repair {
                 mod_repair_urls
                 mod_repair_editor_abbrevation
                 mod_repair_perl_video_box
-                mod_prepare_tooltipps
                 mod_repair_comments
+		mod_prepare_tooltipps
+		#mod_tooltipps_stars
                 mod_remove_boxes
 
                 # convert back to ISO-8859-15
