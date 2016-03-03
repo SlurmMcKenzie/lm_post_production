@@ -16,7 +16,7 @@ working_dir=$(pwd)
 bin_dir="/opt/lnm/bin"
 exportpath=${working_dir}"/../../1_export"
 target_folder=${working_dir}"/../../2_checked"
-editor=/usr/bin/vim
+editor=/usr/bin/gedit
 browser=/usr/bin/firefox
 
 # Magazine Issue
@@ -541,7 +541,7 @@ urls_space=$(grep -o "\(<U> *.*[[:space:]]*.*<U>\)" ${article} | grep "[[:space:
 urls_brkt=$(grep -o "\(<U> *.*<U>]\)\|\(http:/<U>\)\|\(<U> *.*]\)\|\(]<U>[[:graph:]]\)" ${article})
 
     if [ "${urls_space}" ] || [ "${urls_brkt}" ]; then
-        sed -i 's/\(<U>.*\) \(.*<U>\)/\1\2/g; s/\(\/<U>\)/\/\//g; s/\(<U>]\)/<U>/g; s/]$/<U>/g; s/\(]<U>\)/<U> /g' ${article}
+        sed -i 's/\(<U>.*\) \(.*<U>\)/\1\2/g; s/\(\/<U>\)/\/\//g; s/\(<U>]\)/<U>/g; s/\(]<U>\)/<U> /g' ${article}
     fi
 }
 
