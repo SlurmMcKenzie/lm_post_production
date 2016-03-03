@@ -195,7 +195,9 @@ occurence_id=$(grep -c '^@#: *ID: *[0-9]' ${article})
     fi
 
     if [ "${occurence_id}" -lt "1" ]; then
-        echo "The @#:ID seems to be lacking, please correct."
+		rot=$(tput setaf 1)
+        reset=$(tput sgr0)
+        echo -e ${rot}"The @#:ID in" ${folder} "seems to be lacking, please correct." ${reset}
     fi
 }
 
@@ -538,11 +540,18 @@ fi
 function mod_repair_urls {
 
 urls_space=$(grep -o "\(<U> *.*[[:space:]]*.*<U>\)" ${article} | grep "[[:space:]]")
-urls_brkt=$(grep -o "\(<U> *.*<U>]\)\|\(http:/<U>\)\|\(<U> *.*]\)\|\(]<U>[[:graph:]]\)" ${article})
 
-    if [ "${urls_space}" ] || [ "${urls_brkt}" ]; then
-        sed -i 's/\(<U>.*\) \(.*<U>\)/\1\2/g; s/\(\/<U>\)/\/\//g; s/\(<U>]\)/<U>/g; s/\(]<U>\)/<U> /g' ${article}
+    if [ "${urls_space}" ]; then
+        sed -i 's/\(<U>.*\) \(.*<U>\)/\1\2/g' ${article}
     fi
+
+urls_brkt=$(grep -o "\(<U> *.*<U>]\)\|\(http:/<U>\)\|\(<U> *.*]\)\|\(]<U>[[:graph:]]\)" ${article})
+	if [ "${urls_brkt}" ]; then
+		#sed -i 's/\(\/<U>\)/\/\//g; s/\(<U>]\)/<U>/g; s/\(]<U>\)/<U> /g' ${article}
+		rot=$(tput setaf 1)
+        reset=$(tput sgr0)
+        echo -e ${rot}"The URLs in" ${folder} "seem to be messed up, please check that." ${reset}
+	fi
 }
 
 
