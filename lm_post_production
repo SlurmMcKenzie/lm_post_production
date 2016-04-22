@@ -710,7 +710,6 @@ delugdvd=$(grep -e '<kicker>In eigener Sache: DELUG-DVD</kicker>' ${article})
 
 function check {
     if [ -d ${exportpath} ]; then
-
         # List folders with leading digits
         for folder in $(ls -d [[:digit:]]*); do
             if [ -d ${working_dir}/${folder} ]; then
@@ -720,15 +719,21 @@ function check {
 				if [ -f ${article} ]; then
 					continue
 				else
-					echo -e "Could not find file 'article.txt' in folder:" ${folder}
+					rot=$(tput setaf 1)
+					reset=$(tput sgr0)
+					echo -e "File 'article.txt' is missing in folder:" ${rot}${folder}${reset}
 					missing=true
                 fi
             fi
         done
         if [ ${missing} ]; then
-				echo -e "Please ask Layout to export the missing 'article.txt' file(s)."
+				rot=$(tput setaf 1)
+				reset=$(tput sgr0)
+				echo -e ${rot}"Please tell Layout to export missing 'article.txt' once more!"${reset}
 			else
-				echo -e "All 'article.txt' files seem to be in place. Please continue with 'lm_post_production -r'."
+				green=$(tput setaf 2)
+				reset=$(tput sgr0)
+				echo -e ${green}"All 'article.txt' files seem to be in place. Jay!"${reset}
         fi
     else
 		echo -e "You probably started this script from the wrong dir. Please read 'DESCRIPTION' in help section."
