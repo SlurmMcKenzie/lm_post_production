@@ -708,40 +708,40 @@ delugdvd=$(grep -e '<kicker>In eigener Sache: DELUG-DVD</kicker>' ${article})
 #####   Main: "-c" - check for 'article.txt' #####
 #       Checks, if export from Indesign worked and there is an 'article.txt' in every folder
 
+
 function check {
     if [ -d ${exportpath} ]; then
         # List folders with leading digits
-        for folder in $(ls -d [[:digit:]]*); do
-            if [ -d ${working_dir}/${folder} ]; then
+        for folder in $(ls -d ../[[:digit:]]*); do
+
+	     if [[ -d ${folder} ]]; then
 				# and dive into it
-                cd ${working_dir}/${folder}
+                cd ${folder}
 
 				if [ -f ${article} ]; then
 					continue
 				else
-					rot=$(tput setaf 1)
+					red=$(tput setaf 1)
 					reset=$(tput sgr0)
-					echo -e "File 'article.txt' is missing in folder:" ${rot}${folder}${reset}
+					echo -e "Could not find file 'article.txt' in folder:" ${red}${folder}${reset}
 					missing=true
                 fi
             fi
         done
         if [ ${missing} ]; then
-				rot=$(tput setaf 1)
+				red=$(tput setaf 1)
 				reset=$(tput sgr0)
-				echo -e ${rot}"Please tell Layout to export missing 'article.txt' once more!"${reset}
+				echo -e ${red}"Please ask Layout to export the missing 'article.txt' file(s)."${reset}
 			else
 				green=$(tput setaf 2)
 				reset=$(tput sgr0)
-				echo -e ${green}"All 'article.txt' files seem to be in place. Jay!"${reset}
+				echo -e ${green}"All 'article.txt' files seem to be in place. Please continue with 'lm_post_production -r'."${reset}
         fi
     else
 		echo -e "You probably started this script from the wrong dir. Please read 'DESCRIPTION' in help section."
 		exit 0
     fi
 }
-
-
 
 #####   Main: "-r" - repair txt-files #####
 #       Repairs all kinds of bugs before conversion and shows result
