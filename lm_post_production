@@ -503,13 +503,15 @@ fi
 function mod_tooltipps_stars {
 
 tooltipps_stars=$(grep -e '@T: *Tooltipps' ${article})
+tooltipps_pass=$(grep -e '<R>' ${article})
 
-if [ "${tooltipps_stars}" ]; then
+if [ "${tooltipps_stars}" ] && [ ! "${tooltipps_pass}" ]; then
 
     back=$(pwd)
     cd ../../../../../../
     tt_one=$(ls | grep -e '_txt')
     tt_two=$(ls | grep -e 'tooltipp')
+	occ=0
 
     if [[ -d ${tt_one} ]]; then
         cd ${tt_one}
@@ -521,12 +523,16 @@ if [ "${tooltipps_stars}" ]; then
                 work=$(grep -o '<R>.*<R>' ${count_tt})
                 for i in ${work}; do
                     i_new=$(echo ${i} | sed 's/\(\/\)/\\\1/')
-		    cd ${back}
-                    sed  -i 's/\(@ZKT.*$\)/'"${i_new}"'\n\1 /' ${article}
-		    cd ${forth}
+					cd ${back}
+					occ=$((${occ} + 1))
+					echo ${occ}
+					sed -i '0,/@KE:/s/@KE:/'"${occ}"'KE:/' ${article}
+					sed -i 's/\('"${occ}"'KE.*$\)/'"${i_new}"'\n\1/' ${article}
+					cd ${forth}
                 done
             fi
         cd ${back}
+		sed -i 's/[0-9]KE:/@KE:/' ${article}
     else
         cd ${back}
     fi
