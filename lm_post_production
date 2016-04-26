@@ -525,9 +525,9 @@ if [ "${tooltipps_stars}" ] && [ ! "${tooltipps_pass}" ]; then
                     i_new=$(echo ${i} | sed 's/\(\/\)/\\\1/')
 					cd ${back}
 					occ=$((${occ} + 1))
-					echo ${occ}
 					sed -i '0,/@KE:/s/@KE:/'"${occ}"'KE:/' ${article}
-					sed -i 's/\('"${occ}"'KE.*$\)/'"${i_new}"'\n\1/' ${article}
+					sed -i 's/\('"${occ}"'KE.*$\)/\n\1\n'"${i_new}"'/' ${article}
+					#sed -i '/'"${i_new}"'/i \'"${occ}"'KE:' ${article}
 					cd ${forth}
                 done
             fi
@@ -790,7 +790,7 @@ function repair {
                 mod_repair_perl_video_box
                 mod_repair_comments
 		mod_prepare_tooltipps
-		#mod_tooltipps_stars
+		mod_tooltipps_stars
                 mod_remove_boxes
 
                 # convert back to ISO-8859-15
