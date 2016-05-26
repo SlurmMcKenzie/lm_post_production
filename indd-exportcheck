@@ -48,14 +48,26 @@ function check {
 				# and dive into it
                 cd ${working_dir}/${folder}
 
-				if [ -f ${article} ]; then
-					continue
+				occurence=$(grep '^@#: *ID: *[0-9]' ${article} 2>&1 &)
+				
+				if [[ -f ${article} ]]; then
+					if [[ -n "${occurence}" ]]; then
+						continue
+					else
+						rot=$(tput setaf 1)
+						reset=$(tput sgr0)
+						echo -e "Die ID fehlt im Artikel:" ${rot}${folder}${reset}
+						missingtoo=true
+					fi
 				else
-					echo -e "Datei 'article.txt' fehlt im Ordner:" ${folder}
+					rot=$(tput setaf 1)
+					reset=$(tput sgr0)
+					echo -e "Datei 'article.txt' fehlt im Ordner:" ${rot}${folder}${reset}
 					missing=true
-                fi
+                		fi
             fi
         done
+
         if [ ${missing} ]; then
 				rot=$(tput setaf 1)
 				reset=$(tput sgr0)
@@ -64,6 +76,16 @@ function check {
 				green=$(tput setaf 2)
 				reset=$(tput sgr0)
 				echo -e ${green}"Alle 'article.txt'-Dateien scheinen da zu sein. Juhu!"${reset}
+        fi
+	
+	if [ ${missingtoo} ]; then
+				rot=$(tput setaf 1)
+				reset=$(tput sgr0)
+				echo -e ${rot}"Bitte fehlende IDs aus dem Zope nachtragen!"${reset}
+			else
+				green=$(tput setaf 2)
+				reset=$(tput sgr0)
+				echo -e ${green}"Alle IDs scheinen vorhanden zu sein. Juhu!"${reset}
         fi
     else
 		echo -e "Bitte rufe das Skript aus dem Ordner ".../1_export" heraus auf!"
