@@ -809,7 +809,7 @@ function repair {
                             echo "Starting Editor..."
                             rm ${working_dir}/${error_log}
                             sleep 2
-                            ${editor} ${article} > /dev/null 2>&1 &
+                            ${editor} ${article} 2>&1 &&
                             # Pass changes on TXT files to HTML files
                             ${bin_dir}/${satzfertig} -Hq ${article} ${article_html} 2>&1 &&
 
