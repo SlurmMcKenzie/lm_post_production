@@ -177,6 +177,14 @@ if [ "${listing_order}" ]; then
         fi
     done
 fi
+
+# warns if '&' signs show up in article intro
+and_in_intro=$(grep "@V:" ${article} | grep "&")
+
+if [ "${and_in_intro}" ]; then
+    rot=$(tput setaf 1)
+    reset=$(tput sgr0)
+    echo -e ${rot}"Please replace '&' sign in the intro of article in" ${folder}"."${reset}
 }
 
 
