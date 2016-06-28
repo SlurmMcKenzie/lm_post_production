@@ -727,7 +727,7 @@ delugdvd=$(grep -e '<kicker>In eigener Sache: DELUG-DVD</kicker>' ${article})
 function check {
     if [ -d ${exportpath} ]; then
         # List folders with leading digits
-        for folder in $(ls -d ../[[:digit:]]*); do
+        for folder in $(ls -d ../[[:digit:]][[:digit:]][[:digit:]]*); do
 
 	     if [[ -d ${folder} ]]; then
 				# and dive into it
