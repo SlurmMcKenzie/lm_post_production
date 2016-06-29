@@ -16,7 +16,7 @@ working_dir=$(pwd)
 bin_dir="/opt/lnm/bin"
 exportpath=${working_dir}"/../../1_export"
 target_folder=${working_dir}"/../../2_checked"
-editor=/usr/bin/gedit
+editor=/usr/bin/geany
 browser=/usr/bin/firefox
 
 # Magazine Issue
@@ -758,12 +758,89 @@ function check {
     fi
 }
 
+function repair_article {
+
+echo -e "\nNext article:"${folder}
+echo -e "================================"
+# convert to UTF-8
+convert_to_utf8
+
+# this module removes "Heft-DVD" boxes that make no sense online
+mod_warnings
+mod_remove_duplicate
+mod_insecurity_pic
+mod_remove_ads
+mod_replace_bookbox
+mod_prepare_ed_letter
+mod_prepare_pics_news_zut
+mod_repair_news_headline
+mod_repair_news_box
+mod_prepare_edi
+mod_repair_urls
+mod_repair_editor_abbrevation
+mod_repair_perl_video_box
+mod_repair_comments
+mod_prepare_tooltipps
+mod_tooltipps_stars
+mod_remove_boxes
+
+# convert back to ISO-8859-15
+convert_to_iso8859_15
+
+mod_html_check
+
+while true
+do
+read -p "Do you want to change something on the article and/or take a look at the 'error.log' now? [y/n]" error
+	case ${error} in
+	y)
+		echo "Error Log:"
+		cat ${working_dir}/${error_log} | more
+		echo -e "\n"
+		echo "Starting Editor..."
+		rm ${working_dir}/${error_log}
+		sleep 2
+
+		${editor} ${article} > /dev/null 2>&1 &
+
+		# Pass changes on TXT files to HTML files
+		${bin_dir}/${satzfertig} -Hq ${article} ${article_html} 2>&1 &&
+
+		read -p "Move on to the next article? [y/n]" moveon
+			case ${moveon} in
+			y)
+				break
+				;;
+			*)
+				exit 0
+				;;
+			esac
+		break
+		;;
+	*)
+		read -p "Move on to the next article? [y/n]" moveover
+			case ${moveover} in
+			y)
+				rm ${working_dir}/${error_log}
+				break
+				;;
+			*)
+				exit 0
+				;;
+			esac
+		break
+		;;
+	esac
+done
+}
+
 #####   Main: "-r" - repair txt-files #####
 #       Repairs all kinds of bugs before conversion and shows result
 
 function repair {
+arguments=("${@}")
 
-    # check, if location is your own subfolder in "1_export", for example "kki"
+	# check, if location is your own subfolder in "1_export", for example "kki"
     sleep 2
     if [ -d ${exportpath} ]; then
 
@@ -773,88 +850,22 @@ function repair {
             chmod u+x ${working_dir}/${error_log}
         fi
 
-        ## Insert modules
-        # List folders with leading digits and dive into it
-        for folder in $(ls -d [[:digit:]]*); do
-            if [ -d ${working_dir}/${folder} ]; then
-                cd ${working_dir}/${folder}
-                echo -e "\nNext article:"${folder}
-                echo -e "================================"
-                # convert to UTF-8
-                convert_to_utf8
-
-                # this module removes "Heft-DVD" boxes that make no sense online
-                mod_warnings
-                mod_remove_duplicate
-                mod_insecurity_pic
-                mod_remove_ads
-                mod_replace_bookbox
-                mod_prepare_ed_letter
-                mod_prepare_pics_news_zut
-                mod_repair_news_headline
-                mod_repair_news_box
-                mod_prepare_edi
-                mod_repair_urls
-                mod_repair_editor_abbrevation
-                mod_repair_perl_video_box
-                mod_repair_comments
-		mod_prepare_tooltipps
-		mod_tooltipps_stars
-                mod_remove_boxes
-
-                # convert back to ISO-8859-15
-                convert_to_iso8859_15
-
-                mod_html_check
-
-                while true
-                    do
-                    read -p "Do you want to change something on the article and/or take a look at the 'error.log' now? [y/n]" error
-                        case ${error} in
-                        y)
-                            echo "Error Log:"
-                            cat ${working_dir}/${error_log} | more
-                            echo -e "\n"
-                            echo "Starting Editor..."
-                            rm ${working_dir}/${error_log}
-                            sleep 2
-
-                            ${editor} ${article} > /dev/null 2>&1 &
-
-                            # Pass changes on TXT files to HTML files
-                            ${bin_dir}/${satzfertig} -Hq ${article} ${article_html} 2>&1 &&
-
-                            read -p "Move on to the next article? [y/n]" moveon
-                                case ${moveon} in
-                                y)
-                                    break
-                                    ;;
-                                *)
-                                    exit 0
-                                    ;;
-                                esac
-                            break
-                            ;;
-                        *)
-                            read -p "Move on to the next article? [y/n]" moveover
-                                case ${moveover} in
-                                y)
-                                    rm ${working_dir}/${error_log}
-                                    break
-                                    ;;
-                                *)
-                                    exit 0
-                                    ;;
-                                esac
-                            break
-                            ;;
-                        esac
-                    done
-                # go back in your subfolder, for example "kki"
-                cd ..
-            fi
-        done
-        echo -e "\nIf all articles look fine, you should now call 'lm_post_production -m' to extract listings and prepare files for a proper XML export.\n"
+		if  [[ "${#}" -gt 1 ]]; then
+			echo "Nur ein Test"
+			exit 0;
+		else
+			## Insert modules
+			# List folders with leading digits and dive into it
+			for folder in $(ls -d [[:digit:]]*); do
+				if [ -d ${working_dir}/${folder} ]; then
+					cd ${working_dir}/${folder}
+					repair_article
+					# go back in your subfolder, for example "kki"
+					cd ..
+				fi
+			done
+			echo -e "\nIf all articles look fine, you should now call 'lm_post_production -m' to extract listings and prepare files for a proper XML export.\n"
+		fi
     else
 	echo -e "You probably started this script from the wrong dir"
         exit 0
@@ -944,18 +955,24 @@ function upload {
 }
 
 function start {
+arguments=("${@}")
 
-    if [ "${1}" == "" ] || [ "${1}" == "-h" ] || [ "${1}" == "--help" ]; then
-        get_help
-    elif [ "${1}" == "-c" ] || [ "${1}" == "--check" ]; then
-        check
-    elif [ "${1}" == "-r" ] || [ "${1}" == "--repair" ]; then
-        repair
-    elif [ "${1}" == "-m" ] || [ "${1}" == "--make_listings" ]; then
-        make_listings
-    elif [ "${1}" == "-u" ] || [ "${1}" == "--upload" ]; then
-        upload
-    fi
+    for ((i=0; i < "${#}"; i++))
+    {
+		if [ "${arguments[$i]}" == "" ] || [ "${arguments[$i]}" == "-h" ] || [ "${arguments[$i]}" == "--help" ]; then
+			get_help
+		elif [ "${arguments[$i]}" == "-c" ] || [ "${arguments[$i]}" == "--check" ]; then
+			check
+		elif [ "${arguments[$i]}" == "-s" ] || [ "${arguments[$i]}" == "--single_articles" ]; then
+			repair "${@}"
+		elif [ "${arguments[$i]}" == "-r" ] || [ "${arguments[$i]}" == "--repair" ]; then
+			repair "${@}"
+		elif [ "${arguments[$i]}" == "-m" ] || [ "${arguments[$i]}" == "--make_listings" ]; then
+			make_listings
+		elif [ "${arguments[$i]}" == "-u" ] || [ "${arguments[$i]}" == "--upload" ]; then
+			upload
+		fi
+	}
 }
 
-start "${1}"
+start "${@}"
