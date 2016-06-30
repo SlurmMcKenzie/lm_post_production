@@ -68,7 +68,7 @@ function get_help {
     echo -e "\tlm_post_production.sh\n"
 
     echo -e "${bold}SYNOPSIS${normal}"
-    echo -e "\tlm_post_production.sh --help | --check | --repair | --make_listings | --upload\n"
+    echo -e "\tlm_post_production.sh --help | --check | --repair | --repair_single_articles | --make_listings | --make_single_listings | --upload\n"
 
     echo -e "${bold}DESCRIPTION${normal}"
     echo -e "\tPut this script in your own folder in '1_export'. It converts
@@ -689,6 +689,7 @@ function mod_move_finalized_folder {
 	    echo "Move" ${folder} "to 2_checked."
 	    echo -e "****\n"
 	else
+		# TODO
 	    #...if not, mkdir folder
 	    #mkdir ${target_folder}
         #mod_move_finalized_folder
@@ -851,8 +852,21 @@ arguments=("${@}")
         fi
 
 		if  [[ "${#}" -gt 1 ]]; then
-			echo "Nur ein Test"
-			exit 0;
+			## Insert modules
+			# List folders with leading digits and dive into it
+			for ((i=1; i < "${#}"; i++))
+			{
+				for folder in ${arguments[$i]}; do
+					if [ -d ${working_dir}/${folder} ]; then
+						cd ${working_dir}/${folder}
+						repair_article
+					# go back in your subfolder, for example "kki"
+					cd ..
+				fi
+			done
+			echo -e "\nIf all articles look fine, you should now call 'lm_post_production -m' to extract listings and prepare files for a proper XML export.\n"			
+			}
+		
 		else
 			## Insert modules
 			# List folders with leading digits and dive into it
@@ -864,7 +878,7 @@ arguments=("${@}")
 					cd ..
 				fi
 			done
-			echo -e "\nIf all articles look fine, you should now call 'lm_post_production -m' to extract listings and prepare files for a proper XML export.\n"
+			echo -e "\nIf all articles look fine, you should now call 'lm_post_production -sm <folder1> <folder2> ...' to extract listings and prepare files for a proper XML export.\n"
 		fi
     else
 	echo -e "You probably started this script from the wrong dir"
@@ -876,6 +890,7 @@ arguments=("${@}")
 ##### Main: "-m" - CONVERT LISTINGS AND MOVE FOLDERS #######
 
 function make_listings {
+arguments=("${@}")
 
     # check, if location is your own subfolder in "1_export", for example "kki"
     if [ -d ${exportpath} ]; then
@@ -886,25 +901,45 @@ function make_listings {
             chmod a+x ${working_dir}/${error_log}
         fi
 
-        ## Insert modules
-        #
-        # list folders and ls into it one by one
-        echo -e "Script generates listings now if it finds some..."
-        for folder in $(ls -d [[:digit:]]*); do
-            if [ -d ${working_dir}/${folder} ]; then
-                cd ${working_dir}/${folder}
-                # after everything is fine with article.txt, start extracting the listings
-                mod_extract_listing
-                mod_upload_listings
+		if  [[ "${#}" -gt 1 ]]; then
+			for ((i=1; i < "${#}"; i++))
+			{
+				echo -e "Script generates listings now if it finds some..."
+				for folder in ${arguments[$i]}; do
+					if [ -d ${working_dir}/${folder} ]; then
+						cd ${working_dir}/${folder}
+						# after everything is fine with article.txt, start extracting the listings
+						mod_extract_listing
+						mod_upload_listings
+						# go back in your subfolder, for example "kki"
+						cd ..
+						
+						# check if $target_folder exists and move just finalized $folder there
+						mod_move_finalized_folder
+					fi
+				done
+			}
+		else
+				## Insert modules
+				#
+				# list folders and ls into it one by one
+				echo -e "Script generates listings now if it finds some..."
+				for folder in $(ls -d [[:digit:]]*); do
+					if [ -d ${working_dir}/${folder} ]; then
+						cd ${working_dir}/${folder}
+						# after everything is fine with article.txt, start extracting the listings
+						mod_extract_listing
+						mod_upload_listings
 
-                # go back in your subfolder, for example "kki"
-                cd ..
+						# go back in your subfolder, for example "kki"
+						cd ..
 
-                # check if $target_folder exists and move just finalized $folder there
-                mod_move_finalized_folder
+						# check if $target_folder exists and move just finalized $folder there
+						mod_move_finalized_folder
 
-            fi
-        done
+					fi
+				done
+		fi
     else
         echo "You need to create a subfolder in '1_export' and start this script from there."
         exit 0
@@ -963,12 +998,14 @@ arguments=("${@}")
 			get_help
 		elif [ "${arguments[$i]}" == "-c" ] || [ "${arguments[$i]}" == "--check" ]; then
 			check
-		elif [ "${arguments[$i]}" == "-s" ] || [ "${arguments[$i]}" == "--single_articles" ]; then
-			repair "${@}"
 		elif [ "${arguments[$i]}" == "-r" ] || [ "${arguments[$i]}" == "--repair" ]; then
 			repair "${@}"
+		elif [ "${arguments[$i]}" == "-sr" ] || [ "${arguments[$i]}" == "--repair_single_articles" ]; then
+			repair "${@}"
 		elif [ "${arguments[$i]}" == "-m" ] || [ "${arguments[$i]}" == "--make_listings" ]; then
-			make_listings
+			make_listings "${@}"
+		elif [ "${arguments[$i]}" == "-sm" ] || [ "${arguments[$i]}" == "--make_single_listings" ]; then
+			make_listings "${@}"
 		elif [ "${arguments[$i]}" == "-u" ] || [ "${arguments[$i]}" == "--upload" ]; then
 			upload
 		fi
