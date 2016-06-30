@@ -950,43 +950,77 @@ arguments=("${@}")
 # CONVERT TXT TO XML AND CHANGE XML FILES
 
 function upload {
+arguments=("${@}")
 
-    # check, if location is in "2_checked"
-    if [ -d ${target_folder} ]; then
-        ## Insert modules
-        if [ "ls -A ${target_folder}" ]; then
-            # change into '2_checked'
-            cd ${target_folder}
+# check, if location is in "2_checked"
+if [ -d ${target_folder} ]; then
+	
+	if  [[ "${#}" -gt 1 ]]; then
+		if [ "ls -A ${target_folder}" ]; then
+			# change into '2_checked'
+			cd ${target_folder}
 
-            # show all folders an start conversion
-            ls -d [0-9][0-9][0-9]*
+			# show all folders an start conversion
+			ls -d [0-9][0-9][0-9]*
 
-            read -p "Convert all listed articles to XML - and repair XML files afterwards? [y/n]" yesyoucan
-                case ${yesyoucan} in
-                y | j)
-                    . ${bin_dir}/convert2xml.sh -y ${issue_year} -i ${issue_month} -m LM
-                    echo "Converted all articles to XML-files."
-                    ;;
-                *)
-                    exit 0
-                    ;;
-                esac
+			read -p "Convert all listed articles to XML - and repair XML files afterwards? [y/n]" yesyoucan
+				case ${yesyoucan} in
+				y | j)
+					. ${bin_dir}/convert2xml.sh -y ${issue_year} -i ${issue_month} -m LM
+					echo "Converted all articles to XML-files."
+					;;
+				*)
+					exit 0
+					;;
+				esac
 
-        # repair things before conversion starts
-        # list folders in '2_checked' and ls into it one by one
-            for folder in $(ls -d [0-9][0-9][0-9]*); do
-                if [ -d ${target_folder}/${folder} ]; then
-                    cd ${target_folder}/${folder}
-                    mod_repair_xml
-                fi
-            done
-        else
-            echo -e "No folder found in '2_checked'."
-        fi
-    else
-        echo "This option only works if you call it from '1_export/<your_folder>'. It prepares existing XML files for the upload to our website."
-        exit 0
-    fi
+		# repair things before conversion starts
+		# list folders in '2_checked' and ls into it one by one
+			for folder in $(ls -d [0-9][0-9][0-9]*); do
+				if [ -d ${target_folder}/${folder} ]; then
+					cd ${target_folder}/${folder}
+					mod_repair_xml
+				fi
+			done
+		else
+			echo -e "No folder found in '2_checked'."
+		fi
+	else
+		## Insert modules
+		if [ "ls -A ${target_folder}" ]; then
+			# change into '2_checked'
+			cd ${target_folder}
+
+			# show all folders an start conversion
+			ls -d [0-9][0-9][0-9]*
+
+			read -p "Convert all listed articles to XML - and repair XML files afterwards? [y/n]" yesyoucan
+				case ${yesyoucan} in
+				y | j)
+					. ${bin_dir}/convert2xml.sh -y ${issue_year} -i ${issue_month} -m LM
+					echo "Converted all articles to XML-files."
+					;;
+				*)
+					exit 0
+					;;
+				esac
+
+		# repair things before conversion starts
+		# list folders in '2_checked' and ls into it one by one
+			for folder in $(ls -d [0-9][0-9][0-9]*); do
+				if [ -d ${target_folder}/${folder} ]; then
+					cd ${target_folder}/${folder}
+					mod_repair_xml
+				fi
+			done
+		else
+			echo -e "No folder found in '2_checked'."
+		fi
+	fi
+else
+	echo "This option only works if you call it from '1_export/<your_folder>'. It prepares existing XML files for the upload to our website."
+	exit 0
+fi
 }
 
 function start {
