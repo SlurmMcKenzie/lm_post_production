@@ -16,6 +16,8 @@ working_dir=$(pwd)
 bin_dir="/opt/lnm/bin"
 exportpath=${working_dir}"/../../1_export"
 target_folder=${working_dir}"/../../2_checked"
+tempfolder="temp"
+single_articles_upload=
 editor=/usr/bin/geany
 browser=/usr/bin/firefox
 
@@ -685,7 +687,9 @@ function mod_move_finalized_folder {
 
 	if [ -d ${target_folder} ]; then
 	    #...if so, move all folders there
-	    mv -i ${folder} ${target_folder}
+	    cp -TR ${folder} ${target_folder}/${folder} &&
+		rm -fR ${folder}
+	    #mv -i ${folder} ${target_folder}
 	    echo "Move" ${folder} "to 2_checked."
 	    echo -e "****\n"
 	else
@@ -694,6 +698,29 @@ function mod_move_finalized_folder {
 	    #mkdir ${target_folder}
         #mod_move_finalized_folder
         echo "Please create folder '2_checked' by hand and call '-m'-option again."
+        exit 0
+	fi
+}
+
+
+## Module: MOVE SOME FINISHED ARTICLES ##
+
+function mod_move_some_finalized_folder {
+
+	if [ -d ${target_folder} ]; then
+	    #...if so, move all folders there
+	    mkdir -p ${target_folder}/${tempfolder}
+	    cp -TR ${folder} ${target_folder}/${tempfolder}/${folder} &&
+		rm -fR ${folder}
+	    #mv -i ${folder} ${target_folder}/${tempfolder}
+	    echo "Move" ${folder} "to 2_checked/"${tempfolder}
+	    echo -e "****\n"
+	else
+		# TODO
+	    #...if not, mkdir folder
+	    #mkdir ${target_folder}
+        #mod_move_finalized_folder
+        echo "Please create folder '2_checked' by hand and call '-sm <folder1> <folder2> ...'-option again."
         exit 0
 	fi
 }
@@ -712,12 +739,12 @@ delugdvd=$(grep -e '<kicker>In eigener Sache: DELUG-DVD</kicker>' ${article})
 
 	if [ "${edi}" ] ; then
 		sed -i 's/online access="free"/online access="restricted"/' ${article}
-	    echo "Prepared XML file in ${folder} for Upload."
+	    echo "Restricted access to ${folder} configured."
 	fi
 
 	if [ "${buecher}" ] || [ "${perlsnap}" ] || [ "${delugdvd}" ]; then
 	    sed -i 's/online\ access="restricted"/online\ access="free"/' ${article}
-	    echo "Prepared XML file in ${folder} for Upload."
+	    echo "Free access to ${folder} configured."
 	fi
 }
 
@@ -864,9 +891,8 @@ arguments=("${@}")
 					cd ..
 				fi
 			done
-			echo -e "\nIf all articles look fine, you should now call 'lm_post_production -m' to extract listings and prepare files for a proper XML export.\n"			
 			}
-		
+		echo -e "\nIf all articles look fine, you should now call 'lm_post_production -sm <folder1> <folder2> ...' to extract listings and prepare files for a proper XML export.\n"
 		else
 			## Insert modules
 			# List folders with leading digits and dive into it
@@ -878,7 +904,7 @@ arguments=("${@}")
 					cd ..
 				fi
 			done
-			echo -e "\nIf all articles look fine, you should now call 'lm_post_production -sm <folder1> <folder2> ...' to extract listings and prepare files for a proper XML export.\n"
+			echo -e "\nIf all articles look fine, you should now call 'lm_post_production -m' to extract listings and prepare files for a proper XML export.\n"
 		fi
     else
 	echo -e "You probably started this script from the wrong dir"
@@ -908,17 +934,21 @@ arguments=("${@}")
 				for folder in ${arguments[$i]}; do
 					if [ -d ${working_dir}/${folder} ]; then
 						cd ${working_dir}/${folder}
+						
 						# after everything is fine with article.txt, start extracting the listings
 						mod_extract_listing
 						mod_upload_listings
 						# go back in your subfolder, for example "kki"
 						cd ..
 						
-						# check if $target_folder exists and move just finalized $folder there
-						mod_move_finalized_folder
+						# check if $target_folder exists and move just finalized $folder in a subfolder
+						mod_move_some_finalized_folder
 					fi
 				done
+				
 			}
+			echo -e "Now upload your single articles with just 'lm_post_production -su' without arguments."
+			exit 0
 		else
 				## Insert modules
 				#
@@ -936,9 +966,9 @@ arguments=("${@}")
 
 						# check if $target_folder exists and move just finalized $folder there
 						mod_move_finalized_folder
-
 					fi
 				done
+				exit 0
 		fi
     else
         echo "You need to create a subfolder in '1_export' and start this script from there."
@@ -955,19 +985,20 @@ arguments=("${@}")
 # check, if location is in "2_checked"
 if [ -d ${target_folder} ]; then
 	
-	if  [[ "${#}" -gt 1 ]]; then
-		if [ "ls -A ${target_folder}" ]; then
-			# change into '2_checked'
-			cd ${target_folder}
+	if  [[ "${#}" -eq 1 ]]; then
+		if [ "ls -A ${target_folder}/${tempfolder}" ]; then
+			# change into '2_checked/temp'
+			cd ${target_folder}/${tempfolder}
 
-			# show all folders an start conversion
+			# list all folders in 'temp'		
 			ls -d [0-9][0-9][0-9]*
 
 			read -p "Convert all listed articles to XML - and repair XML files afterwards? [y/n]" yesyoucan
 				case ${yesyoucan} in
 				y | j)
-					. ${bin_dir}/convert2xml.sh -y ${issue_year} -i ${issue_month} -m LM
+					. ${bin_dir}/convert2xml.sh -y ${issue_year} -i ${issue_month} -m LM &&
 					echo "Converted all articles to XML-files."
+					
 					;;
 				*)
 					exit 0
@@ -977,13 +1008,20 @@ if [ -d ${target_folder} ]; then
 		# repair things before conversion starts
 		# list folders in '2_checked' and ls into it one by one
 			for folder in $(ls -d [0-9][0-9][0-9]*); do
-				if [ -d ${target_folder}/${folder} ]; then
-					cd ${target_folder}/${folder}
+				if [ -d ${target_folder}/${tempfolder}/${folder} ]; then
+					cd ${target_folder}/${tempfolder}/${folder}
 					mod_repair_xml
+					cd ..
+					cp -TR ${target_folder}/${tempfolder}/${folder}/ ${target_folder}/${folder}/ &&
+					rm -fR ${folder}
 				fi
 			done
+			cd ..
+			rm -fR ${target_folder}/${tempfolder} &&
+			echo -e "Repaired all XML files, ready for Upload."
+			exit 0
 		else
-			echo -e "No folder found in '2_checked'."
+			echo -e "No folder found in '2_checked/temp'."
 		fi
 	else
 		## Insert modules
@@ -997,7 +1035,7 @@ if [ -d ${target_folder} ]; then
 			read -p "Convert all listed articles to XML - and repair XML files afterwards? [y/n]" yesyoucan
 				case ${yesyoucan} in
 				y | j)
-					. ${bin_dir}/convert2xml.sh -y ${issue_year} -i ${issue_month} -m LM
+					. ${bin_dir}/convert2xml.sh -y ${issue_year} -i ${issue_month} -m LM &&
 					echo "Converted all articles to XML-files."
 					;;
 				*)
@@ -1013,6 +1051,8 @@ if [ -d ${target_folder} ]; then
 					mod_repair_xml
 				fi
 			done
+			echo -e "Repaired all XML files, ready for Upload."
+			exit 0
 		else
 			echo -e "No folder found in '2_checked'."
 		fi
@@ -1026,7 +1066,7 @@ fi
 function start {
 arguments=("${@}")
 
-    for ((i=0; i < "${#}"; i++))
+    for ((i=0; i <= "${#}"; i++))
     {
 		if [ "${arguments[$i]}" == "" ] || [ "${arguments[$i]}" == "-h" ] || [ "${arguments[$i]}" == "--help" ]; then
 			get_help
@@ -1037,11 +1077,13 @@ arguments=("${@}")
 		elif [ "${arguments[$i]}" == "-sr" ] || [ "${arguments[$i]}" == "--repair_single_articles" ]; then
 			repair "${@}"
 		elif [ "${arguments[$i]}" == "-m" ] || [ "${arguments[$i]}" == "--make_listings" ]; then
-			make_listings "${@}"
+			make_listings
 		elif [ "${arguments[$i]}" == "-sm" ] || [ "${arguments[$i]}" == "--make_single_listings" ]; then
 			make_listings "${@}"
 		elif [ "${arguments[$i]}" == "-u" ] || [ "${arguments[$i]}" == "--upload" ]; then
 			upload
+		elif [ "${arguments[$i]}" == "-su" ] || [ "${arguments[$i]}" == "--upload_single" ]; then
+			upload "${@}"
 		fi
 	}
 }
