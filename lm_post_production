@@ -17,8 +17,7 @@ bin_dir="/opt/lnm/bin"
 exportpath=${working_dir}"/../../1_export"
 target_folder=${working_dir}"/../../2_checked"
 tempfolder="temp"
-single_articles_upload=
-editor=/usr/bin/geany
+editor=/usr/bin/gedit
 browser=/usr/bin/firefox
 
 # Magazine Issue
@@ -60,6 +59,36 @@ fi
 
 
 ##  Module: DISPLAY HELPFILE FOR THE PROGRAM ##
+function usage {
+	bold=`tput bold`
+    normal=`tput sgr0`
+
+    echo -e "${bold}SYNOPSIS${normal}"
+    echo -e "\tlm_post_production <Option> [<Folder1>] [<Folder2>]\n"
+    
+    echo -e "${bold}OPTIONS ALL FILES${normal}
+    \t-h | --help\t\tExtensive helpfile
+    \t-c | --check\t\tCheck if 'article.txt' exists
+    \t-r | --repair\t\tSemiautomatic repair of 'article.txt'
+    \t-m | --make_listings\tExtract listings from 'article.txt' 
+    \t-u | --upload\t\tMake XML files ready for upload\n"
+
+	echo -e "${bold}OPTIONS SINGLE FILES${normal}
+    \t-rs | --repair_some_articles\t\tSemiautomatic repair a bunch of 'article.txt'
+    \t-ms | --make_some_listings\t\tExtract listings from a bunch of 'article.txt' 
+    \t-us | --upload_some_articles\t\tMake some XML files ready for upload\n"
+    
+    echo -e "${bold}EXAMPLE${normal}"
+    echo -e "\tRepair all files: \tlm_post_production -r"
+	echo -e "\tRepair some files: \tlm_post_production -sr 003-003-editorial 006-008-news"
+	echo -e "\tUpload some files: \tlm_post_production -su [WITHOUT OPTIONS!]\n"
+	
+    echo -e "${bold}DESCRIPTION${normal}"
+    echo -e "\tPut this script in your own folder in '1_export'. It converts
+    \t'.txt' into '.html' files, logs error messages in 'error.log'. And
+    \t it generates XML files for upload via sf2xml.\n"
+    exit 0
+}
 
 function get_help {
 
@@ -67,11 +96,12 @@ function get_help {
     normal=`tput sgr0`
 
     echo -e "${bold}NAME${normal}"
-    echo -e "\tlm_post_production.sh\n"
+    echo -e "\tlm_post_production\n"
 
     echo -e "${bold}SYNOPSIS${normal}"
-    echo -e "\tlm_post_production.sh --help | --check | --repair | --repair_single_articles | --make_listings | --make_single_listings | --upload\n"
-
+    echo -e "\tlm_post_production --help | --check | --repair | --make_listings | --upload\n"
+	echo -e "\tlm_post_production --repair_some_articles | --make_some_listings | --upload_some_articles\n"
+	
     echo -e "${bold}DESCRIPTION${normal}"
     echo -e "\tPut this script in your own folder in '1_export'. It converts
     \t'.txt' into '.html' files, logs error messages in 'error.log'. And
@@ -86,19 +116,31 @@ function get_help {
     \tthe whole folder including the listings to '2_checked'. Finally (-u)
     \tit generates XML files and repairs some details of it to
     \tmake the article ready for upload.\n"
+    
+    echo -e "\tFor repairing (-rs) only some articles and prepare only their listings (-ms)
+    \tyou have to call the options followed by the folder names seperated by blanks.
+    \tThis moves the whole folder including the listings to '2_checked/temp'. Finally (-us)
+    \t generates XML files and repairs details of the chosen articles in '2_checked/temp'.\n"
 
     echo -e "${bold}OPTIONS${normal}"
-    echo -e "\t-h / --help"
+    echo -e "\t${bold}-h${normal} / --help\n"
     echo -e "\t\tDisplay this help.\n"
-    echo -e "\t-c / --check"
+    echo -e "\t${bold}-c${normal} / --check\n"
     echo -e "\t\tCheck if 'article.txt' files are in place (only once)\n"
-    echo -e "\t-r / --repair"
+    echo -e "\t${bold}-r${normal} / --repair\n"
     echo -e "\t\tCollects 'sf'-errors in 'error.log' and repairs Bugs from export\n"
-    echo -e "\t-m / --make_listings"
+    echo -e "\t${bold}-m${normal} / --make_listings\n"
     echo -e "\t\tConverts and uploads listings. Moves folders to '2_checked'.\n"
-    echo -e "\t-u / --upload"
+    echo -e "\t${bold}-u${normal} / --upload\n"
     echo -e "\t\tConverts HTML to XML files and those for upload.\n"
 
+	echo -e "\t${bold}-rs <folder1> <folder2>${normal} / --repair_some_articles <folder1> <folder2>\n"
+    echo -e "\t\tCollects 'sf'-errors in 'error.log' and repairs Bugs from export\n"
+    echo -e "\t${bold}-ms <folder1> <folder2>${normal} / --make_some_listings <folder1> <folder2>\n"
+    echo -e "\t\tConverts and uploads some listings. Moves chosen folders to '2_checked'.\n"
+    echo -e "\t${bold}-us (no options here!)${normal} / --upload_some_files (no options here!)\n"
+    echo -e "\t\tConverts some HTML to some XML files and finishes those for upload.\n"
+    
     echo -e "${bold}AUTHOR${normal}"
     echo -e "\tWritten by Kristian Kißling, 2015 - 2016\n"
 
@@ -109,6 +151,7 @@ function get_help {
     echo -e "\tLicense: GNU Public License v2."
     echo -e "\tThis is free software: you are free  to  change  and  redistribute  it.
     \tThere is NO WARRANTY, to the extent permitted by law."
+    exit 0
 }
 
 ## Module: WARNS WHERE MANUAL CHANGES ARE NECESSARY
@@ -1068,21 +1111,23 @@ arguments=("${@}")
 
     for ((i=0; i <= "${#}"; i++))
     {
-		if [ "${arguments[$i]}" == "" ] || [ "${arguments[$i]}" == "-h" ] || [ "${arguments[$i]}" == "--help" ]; then
+		if [ "${arguments[$i]}" == "" ]; then
+			usage
+		elif [ "${arguments[$1]}" == "-h" ] || [ "${arguments[$1]}" == "--help" ]; then
 			get_help
 		elif [ "${arguments[$i]}" == "-c" ] || [ "${arguments[$i]}" == "--check" ]; then
 			check
 		elif [ "${arguments[$i]}" == "-r" ] || [ "${arguments[$i]}" == "--repair" ]; then
 			repair "${@}"
-		elif [ "${arguments[$i]}" == "-sr" ] || [ "${arguments[$i]}" == "--repair_single_articles" ]; then
+		elif [ "${arguments[$i]}" == "-rs" ] || [ "${arguments[$i]}" == "--repair_some_articles" ]; then
 			repair "${@}"
 		elif [ "${arguments[$i]}" == "-m" ] || [ "${arguments[$i]}" == "--make_listings" ]; then
 			make_listings
-		elif [ "${arguments[$i]}" == "-sm" ] || [ "${arguments[$i]}" == "--make_single_listings" ]; then
+		elif [ "${arguments[$i]}" == "-ms" ] || [ "${arguments[$i]}" == "--make_some_listings" ]; then
 			make_listings "${@}"
 		elif [ "${arguments[$i]}" == "-u" ] || [ "${arguments[$i]}" == "--upload" ]; then
 			upload
-		elif [ "${arguments[$i]}" == "-su" ] || [ "${arguments[$i]}" == "--upload_single" ]; then
+		elif [ "${arguments[$i]}" == "-us" ] || [ "${arguments[$i]}" == "--upload_some_articles" ]; then
 			upload "${@}"
 		fi
 	}
