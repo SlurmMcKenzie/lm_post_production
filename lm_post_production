@@ -707,7 +707,7 @@ function mod_upload_listings {
 if [[ -d listings ]]; then
 
 	if [[ -d /home/kkissling/Linux-Magazin/Listings ]]; then
-		listing_part="/home/kkissling/Linux-Magazin/Listings"
+		listing_part="/home/kkissling/Linux-Magazin/Listings/"
 	else
 		listing_part=$(pwd | grep -o '.*production/')
 	fi
