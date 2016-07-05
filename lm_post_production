@@ -706,7 +706,12 @@ function mod_upload_listings {
 
 if [[ -d listings ]]; then
 
-listing_part=$(pwd | grep -o '.*production/')
+	if [[ -d /home/kkissling/Linux-Magazin/Listings ]]; then
+		listing_part="/home/kkissling/Linux-Magazin/Listings"
+	else
+		listing_part=$(pwd | grep -o '.*production/')
+	fi
+
 listing_full=${listing_part}"listings/magazin/"${issue_year}"/"
 sw=$(grep -o '@SW:\( *.*\)' ${article} | cut -d':' -f2 | tr " " "_" | tr "[A-Z]" "[a-z]")
 
@@ -714,7 +719,7 @@ sw=$(grep -o '@SW:\( *.*\)' ${article} | cut -d':' -f2 | tr " " "_" | tr "[A-Z]"
     	cd listings
         mv -v listing* ${listing_full}${issue_month}"/"${sw} &&
         cd ..
-        rmdir listings &&
+        rmdir listings
     else
         echo "Create directory for listing"
         mkdir -vp ${listing_full}${issue_month}"/"${sw} &&
@@ -1131,4 +1136,5 @@ arguments=("${@}")
 	}
 }
 
+set -x
 start "${@}"
