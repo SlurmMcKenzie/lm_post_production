@@ -29,7 +29,7 @@ issue_month=$(pwd | grep -o "[2][0][0-9][0-9]..." | tail -c 3)
 function convert_to_utf8 {
 
 if [ -e article.txt ]; then
-    chmod 755 ${article}
+    chmod 755 ${article} &&
     ${iconv} -f ISO-8859-15 -t UTF-8 ${article} -o article.txt.tmp
     wait
     mv article.txt.tmp article.txt
@@ -46,7 +46,7 @@ fi
 function convert_to_iso8859_15 {
 
 if [ -e article.txt ]; then
-    chmod 755 ${article}
+    chmod 755 ${article} &&
     ${iconv} -f UTF-8 -t ISO-8859-15 ${article} -o article.txt.tmp
     wait
     mv article.txt.tmp article.txt
@@ -678,19 +678,19 @@ avail=$(grep "@KT: *Listing 1" ${article})
 if [ "$avail" ]; then
 
     if [ -d listings ]; then
-        rm -fR listings
+        rm -fR listings &&
     fi
 
     mkdir listings >/dev/null 2>&1
-    chmod a+rw listings
+    chmod a+rw listings &&
 
     ${satzfertig} -nL listings ${article} > /dev/null 2>&1 &&
 
     cd listings
     for i in * ; do
-        sed -i 's/\(.\{2\}\)//' ${i}
+        sed -i 's/\(.\{2\}\)//' ${i} &&
         j=$(ls ${i} | cut -c 13-)
-        mv ${i} listing${j}
+        mv ${i} listing${j} &&
         sleep 2
     # TODO: Remove Inline-Text-Listings, keep only Listing Boxes
     done
@@ -712,12 +712,12 @@ sw=$(grep -o '@SW:\( *.*\)' ${article} | cut -d':' -f2 | tr " " "_" | tr "[A-Z]"
 
     if [[ -d ${listing_full}${issue_month}"/"${sw} ]]; then
     	cd listings
-        mv -v listing* ${listing_full}${issue_month}"/"${sw}
+        mv -v listing* ${listing_full}${issue_month}"/"${sw} &&
         cd ..
-        rmdir listings
+        rmdir listings &&
     else
         echo "Create directory for listing"
-        mkdir -vp ${listing_full}${issue_month}"/"${sw}
+        mkdir -vp ${listing_full}${issue_month}"/"${sw} &&
         mod_upload_listings
     fi
 fi
@@ -729,19 +729,16 @@ fi
 function mod_move_finalized_folder {
 
 	if [ -d ${target_folder} ]; then
+		if [ -d ${target_folder}/${folder} ]; then
+			rm -fR ${target_folder}/${folder} &&
+		fi
 	    #...if so, move all folders there
-	    cp -TR ${folder} ${target_folder}/${folder} &&
-		rm -fR ${folder}
-	    #mv -i ${folder} ${target_folder}
-	    echo "Move" ${folder} "to 2_checked."
+	    mv ${folder} ${target_folder} &&
+	    echo "Moved" ${folder} "to 2_checked."
 	    echo -e "****\n"
 	else
-		# TODO
-	    #...if not, mkdir folder
-	    #mkdir ${target_folder}
-        #mod_move_finalized_folder
-        echo "Please create folder '2_checked' by hand and call '-m'-option again."
-        exit 0
+		mkdir ${target_folder} &&
+		mod_move_finalized_folder
 	fi
 }
 
@@ -750,21 +747,17 @@ function mod_move_finalized_folder {
 
 function mod_move_some_finalized_folder {
 
-	if [ -d ${target_folder} ]; then
+	if [ -d ${target_folder}/${tempfolder} ]; then
+		if [ -d ${target_folder}/${tempfolder}/${folder} ]; then
+			rm -fR ${target_folder}/${tempfolder}/${folder} &&
+		fi
 	    #...if so, move all folders there
-	    mkdir -p ${target_folder}/${tempfolder}
-	    cp -TR ${folder} ${target_folder}/${tempfolder}/${folder} &&
-		rm -fR ${folder}
-	    #mv -i ${folder} ${target_folder}/${tempfolder}
-	    echo "Move" ${folder} "to 2_checked/"${tempfolder}
+	    mv ${folder} ${target_folder}/${tempfolder} &&
+	    echo "Moved" ${folder} "to 2_checked/"${tempfolder}
 	    echo -e "****\n"
 	else
-		# TODO
-	    #...if not, mkdir folder
-	    #mkdir ${target_folder}
-        #mod_move_finalized_folder
-        echo "Please create folder '2_checked' by hand and call '-sm <folder1> <folder2> ...'-option again."
-        exit 0
+		mkdir -p ${target_folder}/${tempfolder} &&
+        mod_move_some_finalized_folder
 	fi
 }
 
@@ -1055,8 +1048,11 @@ if [ -d ${target_folder} ]; then
 					cd ${target_folder}/${tempfolder}/${folder}
 					mod_repair_xml
 					cd ..
-					cp -TR ${target_folder}/${tempfolder}/${folder}/ ${target_folder}/${folder}/ &&
-					rm -fR ${folder}
+					if [ -d ${target_folder}/${folder} ]; then
+						rm -fR ${target_folder}/${folder} &&
+					fi
+					mv ${target_folder}/${tempfolder}/${folder}/ ${target_folder}/${folder}/ &&
+					rm -fR ${folder} &&
 				fi
 			done
 			cd ..
@@ -1064,7 +1060,8 @@ if [ -d ${target_folder} ]; then
 			echo -e "Repaired all XML files, ready for Upload."
 			exit 0
 		else
-			echo -e "No folder found in '2_checked/temp'."
+			echo -e "No folder found in '2_checked/temp'. Something went wrong."
+			exit 0
 		fi
 	else
 		## Insert modules
@@ -1092,12 +1089,13 @@ if [ -d ${target_folder} ]; then
 				if [ -d ${target_folder}/${folder} ]; then
 					cd ${target_folder}/${folder}
 					mod_repair_xml
+					cd ..
 				fi
 			done
 			echo -e "Repaired all XML files, ready for Upload."
 			exit 0
 		else
-			echo -e "No folder found in '2_checked'."
+			echo -e "No folders found in '2_checked'."
 		fi
 	fi
 else
