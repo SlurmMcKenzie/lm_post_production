@@ -4,7 +4,7 @@
 # for this, you have to put all your articles in one subfolder and start this
 # script from there. Then it converts all listings
 
-# Filenames
+# Filename
 article=article.txt
 error_log=error.log
 article_html=article.html
@@ -678,7 +678,7 @@ avail=$(grep "@KT: *Listing 1" ${article})
 if [ "$avail" ]; then
 
     if [ -d listings ]; then
-        rm -fR listings &&
+        rm -fR listings
     fi
 
     mkdir listings >/dev/null 2>&1
@@ -730,7 +730,7 @@ function mod_move_finalized_folder {
 
 	if [ -d ${target_folder} ]; then
 		if [ -d ${target_folder}/${folder} ]; then
-			rm -fR ${target_folder}/${folder} &&
+			rm -fR ${target_folder}/${folder}
 		fi
 	    #...if so, move all folders there
 	    mv ${folder} ${target_folder} &&
@@ -749,7 +749,7 @@ function mod_move_some_finalized_folder {
 
 	if [ -d ${target_folder}/${tempfolder} ]; then
 		if [ -d ${target_folder}/${tempfolder}/${folder} ]; then
-			rm -fR ${target_folder}/${tempfolder}/${folder} &&
+			rm -fR ${target_folder}/${tempfolder}/${folder}
 		fi
 	    #...if so, move all folders there
 	    mv ${folder} ${target_folder}/${tempfolder} &&
@@ -1049,14 +1049,14 @@ if [ -d ${target_folder} ]; then
 					mod_repair_xml
 					cd ..
 					if [ -d ${target_folder}/${folder} ]; then
-						rm -fR ${target_folder}/${folder} &&
+						rm -fR ${target_folder}/${folder}
 					fi
 					mv ${target_folder}/${tempfolder}/${folder}/ ${target_folder}/${folder}/ &&
-					rm -fR ${folder} &&
+					rm -fR ${folder}
 				fi
 			done
 			cd ..
-			rm -fR ${target_folder}/${tempfolder} &&
+			rm -fR ${target_folder}/${tempfolder}
 			echo -e "Repaired all XML files, ready for Upload."
 			exit 0
 		else
