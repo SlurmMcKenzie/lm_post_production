@@ -995,7 +995,7 @@ arguments=("${@}")
 				#
 				# list folders and ls into it one by one
 				echo -e "Script generates listings now if it finds some..."
-				if [[ $(ls -d [[:digit:]]* > /dev/null 2>&1) ]]; then
+				if [[ $(ls -d * 2>/dev/null)  ]]; then
 					for folder in $(ls -d [[:digit:]]*); do
 						if [ -d ${working_dir}/${folder} ]; then
 							cd ${working_dir}/${folder}
