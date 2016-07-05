@@ -995,20 +995,24 @@ arguments=("${@}")
 				#
 				# list folders and ls into it one by one
 				echo -e "Script generates listings now if it finds some..."
-				for folder in $(ls -d [[:digit:]]*); do
-					if [ -d ${working_dir}/${folder} ]; then
-						cd ${working_dir}/${folder}
-						# after everything is fine with article.txt, start extracting the listings
-						mod_extract_listing
-						mod_upload_listings
+				if [[ $(ls -d [[:digit:]]* > /dev/null 2>&1) ]]; then
+					for folder in $(ls -d [[:digit:]]*); do
+						if [ -d ${working_dir}/${folder} ]; then
+							cd ${working_dir}/${folder}
+							# after everything is fine with article.txt, start extracting the listings
+							mod_extract_listing
+							mod_upload_listings
 
-						# go back in your subfolder, for example "kki"
-						cd ..
+							# go back in your subfolder, for example "kki"
+							cd ..
 
-						# check if $target_folder exists and move just finalized $folder there
-						mod_move_finalized_folder
-					fi
-				done
+							# check if $target_folder exists and move just finalized $folder there
+							mod_move_finalized_folder
+						fi
+					done
+				else
+					echo -e "No folders found to move."
+				fi
 				exit 0
 		fi
     else
