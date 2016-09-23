@@ -888,13 +888,14 @@ read -p "Möchtest Du etwas am Artikel (in der 'article.txt') ändern und/oder e
 		echo "Starte Editor..."
 		rm ${working_dir}/${error_log}
 		sleep 2
-
+		set -x
 		${editor} ${article} > /dev/null 2>&1 &
 
+		read -p "Weiter zum nächsten Artikel? [j/n]" moveon
 		# Pass changes on TXT files to HTML files
 		${bin_dir}/${satzfertig} -Hq ${article} ${article_html} 2>&1 &&
 
-		read -p "weiter zum nächsten Artikel? [j/n]" moveon
+		set +x
 			case ${moveon} in
 			j | y)
 				break
