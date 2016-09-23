@@ -187,7 +187,7 @@ warning_a4=$(grep -o '^@[A-Z]*:' ${article} | grep -B1 '@KE' | grep -n '@TT:')
     if [ "${warning_a1}" ] || [ "${warning_a2}" ] || [ "${warning_a3}" ] || [ "${warning_a4}" ]; then
         rot=$(tput setaf 1)
         reset=$(tput sgr0)
-        echo -e ${rot}"Pictures or Tables seem to be inside a box in " ${folder} ". PLEASE CORRECT BY HAND." ${reset}
+        echo -e ${rot}"Es scheinen Bilder und Tabellen im Kasten in " ${folder} " zu stecken. Bitte manuell korrigieren." ${reset}
     fi
 
 # warns, that pictures and news items are probably paired wrong
@@ -197,7 +197,7 @@ zut=$(grep -e '@SW: *Zahlen & Trends' ${article})
 	if [ "${news}" ] || [ "${zut}" ] ; then
 		rot=$(tput setaf 1)
 		reset=$(tput sgr0)
-		echo -e ${rot}"Please check if pictures stick to text in " ${folder}" and CORRECT BY HAND."${reset}
+		echo -e ${rot}"Bitte prüfen, ob Meldungen und Bilder zueinander passen in " ${folder}" und manuell korrigieren."${reset}
 	fi
 
 # warns of wrong picture order or missing pics
@@ -215,7 +215,7 @@ if [ "${pic_order}" ]; then
         else
             rot=$(tput setaf 1)
             reset=$(tput sgr0)
-            echo -e ${rot}"Picture order seems to be wrong or a picture is missing in" ${folder}"."${reset}
+            echo -e ${rot}"Bildreihenfolge ist verkehrt oder Bilder fehlen in" ${folder}"."${reset}
             break
         fi
     done
@@ -236,7 +236,7 @@ if [ "${listing_order}" ]; then
         else
             rot=$(tput setaf 1)
             reset=$(tput sgr0)
-            echo -e ${rot}"Listing order seems to be wrong or a listing is missing in" ${folder}"."${reset}
+            echo -e ${rot}"Listing-Reihenfolge stimmt nicht in" ${folder}" oder es fehlen Listings."${reset}
             break
         fi
     done
@@ -248,7 +248,7 @@ and_in_intro=$(grep "@V:" ${article} | grep "&")
 if [ "${and_in_intro}" ]; then
     rot=$(tput setaf 1)
     reset=$(tput sgr0)
-    echo -e ${rot}"Please replace '&' sign in the intro of article in" ${folder}"."${reset}
+    echo -e ${rot}"Bitte das '&'-Zeichen im Vorspann des Artikels entfernen in" ${folder}"."${reset}
 fi
 }
 
@@ -270,7 +270,7 @@ occurence_id=$(grep -c '^@#: *ID: *[0-9]' ${article})
     if [ "${occurence_id}" -lt "1" ]; then
 		rot=$(tput setaf 1)
         reset=$(tput sgr0)
-        echo -e ${rot}"The @#:ID in" ${folder} "seems to be lacking, please correct." ${reset}
+        echo -e ${rot}"Die @#:ID fehlt offenbar in " ${folder} ", bitte korrigieren." ${reset}
     fi
 }
 
@@ -316,12 +316,12 @@ function mod_find_broken_boxes {
 			echo -e "\n8<----------"
             sed -e "${j}","${k}"'!d' ${article} | tr -s "[:space:]" " " | tr '@' '\n'
             echo -e "\n---------->8\n"
-            read -p "Should I delete this textbox? [y/n]" delete
+            read -p "Soll das Skript diesen Kasten löschen? [j/n]" delete
 			case ${delete} in
-                    y)
+                    j | y)
                         sed -i "${j}","${k}"'d' ${article}
                         counter=$((${counter} + 1))
-                        echo "Box deleted."
+                        echo "Kasten gelöscht."
 
                         if [[ ${counter} -le ${occurences} ]]; then
 							mod_remove_boxes
@@ -629,7 +629,7 @@ urls_brkt=$(grep -o "\(<U> *.*<U>]\)\|\(http:/<U>\)\|\(<U> *.*]\)\|\(]<U>[[:grap
 		#sed -i 's/\(\/<U>\)/\/\//g; s/\(<U>]\)/<U>/g; s/\(]<U>\)/<U> /g' ${article}
 		rot=$(tput setaf 1)
         reset=$(tput sgr0)
-        echo -e ${rot}"The URLs in" ${folder} "seem to be messed up, please check that." ${reset}
+        echo -e ${rot}"Mit den URLs in" ${folder} "könnte etwas nicht stimmen, bitte ansehen." ${reset}
 	fi
 }
 
@@ -639,16 +639,16 @@ urls_brkt=$(grep -o "\(<U> *.*<U>]\)\|\(http:/<U>\)\|\(<U> *.*]\)\|\(]<U>[[:grap
 function mod_html_check {
 
 # write sf stderr and stdout in error.log
-echo -e "## Start of error.log for:" ${folder} "##\n" >> ../${error_log}
+echo -e "## Start des error.log für:" ${folder} "##\n" >> ../${error_log}
 ${bin_dir}/${satzfertig} -H ${article} ${article_html} >> ../${error_log} 2>&1 &&
-echo -e "\n## End of error.log for:" ${folder} "##\n" >> ../${error_log}
+echo -e "\n## Ende des error.log für:" ${folder} "##\n" >> ../${error_log}
 
 # watch HTML File in $browser
 while true
     do
-        read -p "Check generated HTML in a browser? [y/n]" firefox
+        read -p "Generierte HTML-Datei im Browser überprüfen? [j/n]" firefox
         case ${firefox} in
-            y)
+            j | y)
                 ${browser} --safe-mode ${article_html} 2>&1
                 break
                 ;;
@@ -671,7 +671,7 @@ matches=$(grep -o "\((<I>[[:space:]]*.*[[:space:]]<I>)\)" ${article} | grep -c "
         if [ "${matches}" == 1 ]; then
             sed -i 's/\(<I>.*\) \(.*<I>\)/\1\2/g' ${article}
         else
-            echo "Several <I>-tagged matches with whitespaces. Please correct."
+            echo "Es scheint Leerzeichen beim Redakteurskürzel zu geben, bitte berichtigen."
         fi
     fi
 }
@@ -740,7 +740,7 @@ sw=$(grep -o '@SW:\( *.*\)' ${article} | cut -d':' -f2 | tr " " "_" | tr "[A-Z]"
         cd ..
         rmdir listings
     else
-        echo "Create directory for listing"
+        echo "Lege Verzeichnis für Listing an"
         mkdir -vp ${listing_full}${issue_month}"/"${sw} &&
         mod_upload_listings
     fi
@@ -758,7 +758,7 @@ function mod_move_finalized_folder {
 		fi
 	    #...if so, move all folders there
 	    mv ${folder} ${target_folder} &&
-	    echo "Moved" ${folder} "to 2_checked."
+	    echo "Veschiebe" ${folder} "nach '2_checked'."
 	    echo -e "****\n"
 	else
 		mkdir ${target_folder} &&
@@ -777,7 +777,7 @@ function mod_move_some_finalized_folder {
 		fi
 	    #...if so, move all folders there
 	    mv ${folder} ${target_folder}/${tempfolder} &&
-	    echo "Moved" ${folder} "to 2_checked/"${tempfolder}
+	    echo "Verschiebe" ${folder} "nach '2_checked/"${tempfolder}
 	    echo -e "****\n"
 	else
 		mkdir -p ${target_folder}/${tempfolder} &&
@@ -799,12 +799,12 @@ delugdvd=$(grep -e '<kicker>In eigener Sache: DELUG-DVD</kicker>' ${article})
 
 	if [ "${edi}" ] ; then
 		sed -i 's/online access="free"/online access="restricted"/' ${article}
-	    echo "Restricted access to ${folder} configured."
+	    echo "Beschränke Online-Zugriff auf ${folder}."
 	fi
 
 	if [ "${buecher}" ] || [ "${perlsnap}" ] || [ "${delugdvd}" ]; then
 	    sed -i 's/online\ access="restricted"/online\ access="free"/' ${article}
-	    echo "Free access to ${folder} configured."
+	    echo "Konfiguriere freien Online-Zugriff auf ${folder}."
 	fi
 }
 
@@ -826,7 +826,7 @@ function check {
 				else
 					red=$(tput setaf 1)
 					reset=$(tput sgr0)
-					echo -e "Could not find file 'article.txt' in folder:" ${red}${folder}${reset}
+					echo -e "Konnte 'article.txt' nicht im finden im Ordner:" ${red}${folder}${reset}
 					missing=true
                 fi
             fi
@@ -834,21 +834,21 @@ function check {
         if [ ${missing} ]; then
 				red=$(tput setaf 1)
 				reset=$(tput sgr0)
-				echo -e ${red}"Please ask Layout to export the missing 'article.txt' file(s)."${reset}
+				echo -e ${red}"Ein oder mehrere 'article.txt'-Dateien muss das Layout noch einmal neu erzeugen."${reset}
 			else
 				green=$(tput setaf 2)
 				reset=$(tput sgr0)
-				echo -e ${green}"All 'article.txt' files seem to be in place. Please continue with 'lm_post_production -r'."${reset}
+				echo -e ${green}"Alle 'article.txt'-Dateien scheinen da zu sein. Weiter geht es mit 'lm_post_production -r'."${reset}
         fi
     else
-		echo -e "You probably started this script from the wrong dir. Please read 'DESCRIPTION' in help section."
+		echo -e "Du rufst das Skript vermutlich aus dem falschen Verzeichnis heraus auf. Es startet nur, wenn man es aus einem Unterverzeichnis in '1_export' aufruft."
 		exit 0
     fi
 }
 
 function repair_article {
 
-echo -e "\nNext article:"${folder}
+echo -e "\nNächster Artikel:"${folder}
 echo -e "================================"
 # convert to UTF-8
 convert_to_utf8
@@ -879,13 +879,13 @@ mod_html_check
 
 while true
 do
-read -p "Do you want to change something on the article and/or take a look at the 'error.log' now? [y/n]" error
+read -p "Möchtest Du etwas am Artikel (in der 'article.txt') ändern und/oder einen Blick auf das 'error.log' werfen? [j/n]" error
 	case ${error} in
-	y)
+	j | y)
 		echo "Error Log:"
 		cat ${working_dir}/${error_log} | more
 		echo -e "\n"
-		echo "Starting Editor..."
+		echo "Starte Editor..."
 		rm ${working_dir}/${error_log}
 		sleep 2
 
@@ -894,9 +894,9 @@ read -p "Do you want to change something on the article and/or take a look at th
 		# Pass changes on TXT files to HTML files
 		${bin_dir}/${satzfertig} -Hq ${article} ${article_html} 2>&1 &&
 
-		read -p "Move on to the next article? [y/n]" moveon
+		read -p "weiter zum nächsten Artikel? [j/n]" moveon
 			case ${moveon} in
-			y)
+			j | y)
 				break
 				;;
 			*)
@@ -906,9 +906,9 @@ read -p "Do you want to change something on the article and/or take a look at th
 		break
 		;;
 	*)
-		read -p "Move on to the next article? [y/n]" moveover
+		read -p "Weiter zum nächsten Artikel? [j/n]" moveover
 			case ${moveover} in
-			y)
+			j | y)
 				rm ${working_dir}/${error_log}
 				break
 				;;
@@ -952,7 +952,7 @@ arguments=("${@}")
 				fi
 			done
 			}
-		echo -e "\nIf all articles look fine, you should now call 'lm_post_production -sm <folder1> <folder2> ...' to extract listings and prepare files for a proper XML export.\n"
+		echo -e "\nWenn alle Artikel ('article.txt') gut aussehen, könntest Du jetzt 'lm_post_production -ms <Ordner1> <Ordner2> ...' aufrufen, um die Listings zu extrahieren und die Dateien auf den XML-Export vorzubereiten.\n"
 		else
 			## Insert modules
 			# List folders with leading digits and dive into it
@@ -964,10 +964,10 @@ arguments=("${@}")
 					cd ..
 				fi
 			done
-			echo -e "\nIf all articles look fine, you should now call 'lm_post_production -m' to extract listings and prepare files for a proper XML export.\n"
+			echo -e "\nWenn alle Artikel ('article.txt') gut aussehen, könntest Du jetzt 'lm_post_production -m' aufrufen, um die Listings zu extrahieren und die Dateien auf den XML-Export vorzubereiten.\n"
 		fi
     else
-	echo -e "You probably started this script from the wrong dir"
+	echo -e "Du rufst das Skript vermutlich aus dem falschen Verzeichnis heraus auf. Es startet nur, wenn man es aus einem Unterverzeichnis in '1_export' aufruft."
         exit 0
     fi
 }
@@ -1007,13 +1007,13 @@ arguments=("${@}")
 				done
 				
 			}
-			echo -e "Now upload your single articles with just 'lm_post_production -su' without arguments."
+			echo -e "Nun kannst Du einen oder mehrere Artikel in XML-Versionen verwandeln. Dazu genügt der Aufruf von 'lm_post_production -us' ohne weitere Argumente."
 			exit 0
 		else
 				## Insert modules
 				#
 				# list folders and ls into it one by one
-				echo -e "Script generates listings now if it finds some..."
+				echo -e "Das Skript generiert und verschiebt die Listings, wenn es welche findet..."
 				if [[ $(ls -d * 2>/dev/null)  ]]; then
 					for folder in $(ls -d [[:digit:]]*); do
 						if [ -d ${working_dir}/${folder} ]; then
@@ -1030,12 +1030,12 @@ arguments=("${@}")
 						fi
 					done
 				else
-					echo -e "No folders found to move."
+					echo -e "Keine Ordner zum Verschieben gefunden."
 				fi
 				exit 0
 		fi
     else
-        echo "You need to create a subfolder in '1_export' and start this script from there."
+        echo "Du rufst das Skript vermutlich aus dem falschen Verzeichnis heraus auf. Es startet nur, wenn man es aus einem Unterverzeichnis in '1_export' aufruft."
         exit 0
     fi
 }
@@ -1057,11 +1057,11 @@ if [ -d ${target_folder} ]; then
 			# list all folders in 'temp'		
 			ls -d [0-9][0-9][0-9]*
 
-			read -p "Convert all listed articles to XML - and repair XML files afterwards? [y/n]" yesyoucan
+			read -p "Alle aufgelisteten Artikel ins XML-Format verwandeln und dann reparieren? [j/n]" yesyoucan
 				case ${yesyoucan} in
-				y | j)
+				j | y)
 					. ${bin_dir}/convert2xml.sh -y ${issue_year} -i ${issue_month} -m LM &&
-					echo "Converted all articles to XML-files."
+					echo "Konvertiere alle TXT-Artikel in XML-Dateien."
 					
 					;;
 				*)
@@ -1085,10 +1085,10 @@ if [ -d ${target_folder} ]; then
 			done
 			cd ..
 			rm -fR ${target_folder}/${tempfolder}
-			echo -e "Repaired all XML files, ready for Upload."
+			echo -e "Alle XML-Dateien repariert und bereit für den Server-Upload."
 			exit 0
 		else
-			echo -e "No folder found in '2_checked/temp'. Something went wrong."
+			echo -e "Finde kein Verzeichnis in '2_checked/temp'."
 			exit 0
 		fi
 	else
@@ -1100,11 +1100,11 @@ if [ -d ${target_folder} ]; then
 			# show all folders an start conversion
 			ls -d [0-9][0-9][0-9]*
 
-			read -p "Convert all listed articles to XML - and repair XML files afterwards? [y/n]" yesyoucan
+			read -p "Alle aufgelisteten Artikel ins XML-Format verwandeln und dann reparieren? [j/n]" yesyoucan
 				case ${yesyoucan} in
-				y | j)
+				j | y)
 					. ${bin_dir}/convert2xml.sh -y ${issue_year} -i ${issue_month} -m LM &&
-					echo "Converted all articles to XML-files."
+					echo "Konvertiere alle TXT-Artikel in XML-Dateien."
 					;;
 				*)
 					exit 0
@@ -1120,14 +1120,14 @@ if [ -d ${target_folder} ]; then
 					cd ..
 				fi
 			done
-			echo -e "Repaired all XML files, ready for Upload."
+			echo -e "Alle XML-Dateien repariert und bereit für den Server-Upload."
 			exit 0
 		else
-			echo -e "No folders found in '2_checked'."
+			echo -e "Finde kein Verzeichnis in '2_checked'."
 		fi
 	fi
 else
-	echo "This option only works if you call it from '1_export/<your_folder>'. It prepares existing XML files for the upload to our website."
+	echo "Du rufst das Skript vermutlich aus dem falschen Verzeichnis heraus auf. Es startet nur, wenn man es aus einem Unterverzeichnis in '1_export' aufruft."
 	exit 0
 fi
 }
@@ -1140,14 +1140,13 @@ function start
 
 # Lock setzen oder entfernen
 
-if ! touch /tmp/lm_post_production.lock; then
+if ! mkdir /tmp/lm_post_production.lock; then
     echo -e "Kein Lock gefunden.\n" >&2
     exit 1
-else
-    echo -e "Offenbar nutzt gerade ein Kollege das Skript 'lm_post_production' oder das Lockfile in /tmp wurde nicht korrekt entfernt." 
 fi
 
-trap 'rm -rf /tmp/lm_post_production.lock' EXIT  # remove the lockdir on exit
+# Lockdir am Ende entfernen
+trap 'rm -rf /tmp/lm_post_production.lock' EXIT
 
 # Übergebene Argumente
 arguments=("${@}")
