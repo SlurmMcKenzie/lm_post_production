@@ -4,7 +4,7 @@
 # for this, you have to put all your articles in one subfolder and start this
 # script from there. Then it converts all listings
 
-# Filenames
+# Filename
 article=article.txt
 error_log=error.log
 article_html=article.html
@@ -16,6 +16,7 @@ working_dir=$(pwd)
 bin_dir="/opt/lnm/bin"
 exportpath=${working_dir}"/../../1_export"
 target_folder=${working_dir}"/../../2_checked"
+tempfolder="temp"
 editor=/usr/bin/gedit
 browser=/usr/bin/firefox
 
@@ -28,13 +29,13 @@ issue_month=$(pwd | grep -o "[2][0][0-9][0-9]..." | tail -c 3)
 function convert_to_utf8 {
 
 if [ -e article.txt ]; then
-    chmod 755 ${article}
+    chmod 755 ${article} &&
     ${iconv} -f ISO-8859-15 -t UTF-8 ${article} -o article.txt.tmp
     wait
     mv article.txt.tmp article.txt
     wait
 else
-	echo -e "File article.txt doesn't seem to exist."
+	echo -e "Die Datei 'article.txt' scheint nicht zu existieren."
 	exit 0
 fi
 }
@@ -45,19 +46,50 @@ fi
 function convert_to_iso8859_15 {
 
 if [ -e article.txt ]; then
-    chmod 755 ${article}
+    chmod 755 ${article} &&
     ${iconv} -f UTF-8 -t ISO-8859-15 ${article} -o article.txt.tmp
     wait
     mv article.txt.tmp article.txt
     wait
 else
-    echo -e "File article.txt doesn't seem to exist."
+    echo -e "Die Datei 'article.txt' scheint nicht zu existieren."
 	exit 0
 fi
 }
 
 
 ##  Module: DISPLAY HELPFILE FOR THE PROGRAM ##
+function usage {
+	bold=`tput bold`
+    normal=`tput sgr0`
+
+    echo -e "${bold}SYNOPSIS${normal}"
+    echo -e "\tlm_post_production <Option> [<Folder1>] [<Folder2>]\n"
+    
+    echo -e "${bold}OPTIONEN ALLE DATEIEN${normal}
+    \t-h | --help\t\tAusführliche  Hilfedatei
+    \t-c | --check\t\tPrüfen, ob alle 'article.txt' korrekt aus Indesign exportiert wurden
+    \t-r | --repair\t\tHalbautomatische Reparatur aller 'article.txt'-Dateien
+    \t-m | --make_listings\tListings aller 'article.txt'-Dateien im Ordner aufbereiten
+    \t-u | --upload\t\tXML-Dateien für den Upload vorbereiten\n"
+
+	echo -e "${bold}OPTIONEN FÜR EINZELNE DATEIEN${normal}
+    \t-rs | --repair_some_articles\t\tEine Auswahl an 'article.txt'-Dateien reparieren
+    \t-ms | --make_some_listings\t\tListings einer Auswahl von Artikeln aufbereiten 
+    \t-us | --upload_some_articles\t\tEine Auswahl von XML-Dateien für den Upload vorbereiten\n"
+    
+    echo -e "${bold}BEISPIELE${normal}"
+    echo -e "\tAlle Dateien reparieren: 	\t\tlm_post_production -r"
+    echo -e "\tAusgewählte Dateien reparieren: 	\tlm_post_production -sr 003-003-editorial 006-008-news"
+    echo -e "\tEinige Dateien hochladen: 	\t\tlm_post_production -su [OHNE OPTIONEN]\n"
+	
+    echo -e "${bold}KURZBESCHREIBUNG${normal}"
+    echo -e "\tLege einen eigenen Unterordner im Verzeichnis '1_export' an. Verschiebe die 
+    \tArtikel-Ordner dorthin und wechsele auf der Kommandozeile in diesen Ordner.
+    \tRufe das Skript mit seinen Optionen auf, um möglichst saubere '.txt'-Dateien zu erzeugen
+    \tund diese dann in HTML- und XML-Dateien für den Artikel-Upload zu verwandeln."
+
+}
 
 function get_help {
 
@@ -65,38 +97,69 @@ function get_help {
     normal=`tput sgr0`
 
     echo -e "${bold}NAME${normal}"
-    echo -e "\tlm_post_production.sh\n"
+    echo -e "\tlm_post_production\n"
 
     echo -e "${bold}SYNOPSIS${normal}"
-    echo -e "\tlm_post_production.sh --help | --check | --repair | --make_listings | --upload\n"
-
-    echo -e "${bold}DESCRIPTION${normal}"
-    echo -e "\tPut this script in your own folder in '1_export'. It converts
-    \t'.txt' into '.html' files, logs error messages in 'error.log'. And
-    \t it generates XML files for upload via sf2xml.\n"
-
-    echo -e "\tFor every article the script checks (-c), if the Indesign Export
-    \tworked out and there exists a file 'article.txt' in every folder. The user only
-    \t has to start the script with this option once, in the beginning of the process.
-    \tWith the Repair-Switch (-r) the script displays the repaired and converted
-    \t'.html' file in Firefox. If that looks alright the script will
-    \textract all listings and move them to the ftp-server (-m). Then it moves
-    \tthe whole folder including the listings to '2_checked'. Finally (-u)
-    \tit generates XML files and repairs some details of it to
-    \tmake the article ready for upload.\n"
+    echo -e "\tlm_post_production --help | --check | --repair | --make_listings | --upload\n"
+    echo -e "\tlm_post_production --repair_some_articles | --make_some_listings | --upload_some_articles\n"
+	
+    echo -e "${bold}KURZBESCHREIBUNG${normal}"
+    echo -e "\tDer Redakteur legt einen eigenen Unterordner im Verzeichnis '1_export' an. Er verschiebt seine
+    \tArtikel-Ordner dorthin und wechselt auf der Kommandozeile in diesen Ordner.
+    \tEr ruft dort dann das Skript 'lm_post_production' mit seinen Optionen auf (das ist im Pfad und liegt in /opt/lnm/bin).
+    \tMit dem Schalter '-r' erzeugt er möglichst saubere '.txt'-Dateien, die er dann mit '-m' und '-u' 
+    \tin XML-Dateien für den Artikel-Upload verwandelt.\n"
+    
+    echo -e "\tWill der Redakteur einzelne oder mehrere Artikel nachträglich durch den Prozess schleusen
+    \tgreift er zu '-rs' und '-ms' und ergänzt ein oder mehrere gewünschten Ordner als Argumente. 
+    \tDiese Ordner landen dann in '2_checked/temp'. Ein (-us) generiert XML-Dateien und repariert 
+    \tdie Details der ausgewählten Artikel in '2_checked/temp'.\n"
 
     echo -e "${bold}OPTIONS${normal}"
-    echo -e "\t-h / --help"
-    echo -e "\t\tDisplay this help.\n"
-    echo -e "\t-c / --check"
-    echo -e "\t\tCheck if 'article.txt' files are in place (only once)\n"
-    echo -e "\t-r / --repair"
-    echo -e "\t\tCollects 'sf'-errors in 'error.log' and repairs Bugs from export\n"
-    echo -e "\t-m / --make_listings"
-    echo -e "\t\tConverts and uploads listings. Moves folders to '2_checked'.\n"
-    echo -e "\t-u / --upload"
-    echo -e "\t\tConverts HTML to XML files and those for upload.\n"
+    echo -e "\t${bold}-h${normal} / --help\n"
 
+    echo -e "\t\tZeigt diese Hilfedatei an.\n"
+
+    echo -e "\t${bold}-c${normal} / --check\n"
+
+    echo -e "\t\tFür alle Artikel in '1_export' checkt ${bold}'-c'${normal}, ob der Indesign-Export 
+    \t\tfunktioniert hat und eine Datei namens 'article.txt' in jedem Folder liegt. Der User
+    \t\tmuss diese Option nur einmal anwenden.\n"
+
+    echo -e "\t${bold}-r${normal} / --repair\n"
+
+    echo -e "\t\tDer Reparatur-Schalter ${bold}'-r'${normal} bereinigt die aus dem Indesign exportierten 
+    \t\t'article.txt'-Dateien und konvertiert sie in '.html'-Dateien, die Firefox dann anzeigt. 
+    \t\tDas betrifft alle Artikel im anfangs angelegten Unterordner von '1_export'.
+    \t\tDie dabei von 'sf' genannten Fehler landen in einem 'error.log'. 
+    \t\tEntdeckt der Redakteur in der HTML-Ansicht noch Fehler, verbessert er die TXT-Datei.\n"
+
+    echo -e "\t${bold}-m${normal} / --make_listings\n"
+
+    echo -e "\t\tMachen alle HTML-Dateien einen guten Eindruck, extrahiert der Schalter ${bold}'-m'${normal}
+    \t\tdie Listings aus den Artikeln und verschiebt sie auf den FTP-Server. Dann verschiebt das Skript
+    \t\tden kompletten Ordner nach '2_checked'.\n"
+
+    echo -e "\t${bold}-u${normal} / --upload\n"
+    
+    echo -e "\t\tSchließlich generiert die Option ${bold}'-u'${normal} XML-Dateien für den Upload.
+    \t\tFehler in den XML-Dateien, die das Skript nicht automatisch behebt, schreibt es auf die Konsole. 
+    \t\tDer Redakteur muss notfalls nochmal Änderungen an der 'article.txt' des fehlerhaften Artikels vornehmen.
+    \t\tTut er das nicht, klappt der Upload auf die Webseite eventuell nicht. Über die Optionen '-rs', '-ms' und '-us'
+    \t\tschleust er einzelne Artikel durch den Prozess.\n" 
+
+    echo -e "\t${bold}-rs <Ordner1> <Ordner2>${normal} / --repair_some_articles <Ordner1> <Ordner2>\n"
+    echo -e "\t\tRepariert einen oder mehrere Artikel (siehe '-r')\n"
+    
+    echo -e "\t${bold}-ms <Ordner1> <Ordner2>${normal} / --make_some_listings <Ordner1> <Ordner2>\n"
+    
+    echo -e "\t\tWandelt die Listings eines oder mehrerer Artikel um und schiebt die zugehörigen.
+    \t\tArtikel nach '2_checked' (siehe '-m')\n"
+
+    echo -e "\t${bold}-us (Ohne Optionen)${normal} / --upload_some_files (Ohne Optionen)\n"
+    echo -e "\t\tKonvertiert eine oder mehrere der bereinigten 'article.txt'-Dateien in XML-Dateien
+    \t\tund macht sie bereit für den Upload (siehe '-u', braucht keine Optionen).\n"
+    
     echo -e "${bold}AUTHOR${normal}"
     echo -e "\tWritten by Kristian Kißling, 2015 - 2016\n"
 
@@ -107,6 +170,7 @@ function get_help {
     echo -e "\tLicense: GNU Public License v2."
     echo -e "\tThis is free software: you are free  to  change  and  redistribute  it.
     \tThere is NO WARRANTY, to the extent permitted by law."
+    exit 0
 }
 
 ## Module: WARNS WHERE MANUAL CHANGES ARE NECESSARY
@@ -176,6 +240,15 @@ if [ "${listing_order}" ]; then
             break
         fi
     done
+fi
+
+# warns if '&' signs show up in article intro
+and_in_intro=$(grep "@V:" ${article} | grep "&")
+
+if [ "${and_in_intro}" ]; then
+    rot=$(tput setaf 1)
+    reset=$(tput sgr0)
+    echo -e ${rot}"Please replace '&' sign in the intro of article in" ${folder}"."${reset}
 fi
 }
 
@@ -628,15 +701,15 @@ if [ "$avail" ]; then
     fi
 
     mkdir listings >/dev/null 2>&1
-    chmod a+rw listings
+    chmod a+rw listings &&
 
     ${satzfertig} -nL listings ${article} > /dev/null 2>&1 &&
 
     cd listings
     for i in * ; do
-        sed -i 's/\(.\{2\}\)//' ${i}
+        sed -i 's/\(.\{2\}\)//' ${i} &&
         j=$(ls ${i} | cut -c 13-)
-        mv ${i} listing${j}
+        mv ${i} listing${j} &&
         sleep 2
     # TODO: Remove Inline-Text-Listings, keep only Listing Boxes
     done
@@ -652,18 +725,23 @@ function mod_upload_listings {
 
 if [[ -d listings ]]; then
 
-listing_part=$(pwd | grep -o '.*production/')
+	if [[ -d /home/kkissling/Linux-Magazin/Listings ]]; then
+		listing_part="/home/kkissling/Linux-Magazin/Listings/"
+	else
+		listing_part=$(pwd | grep -o '.*production/')
+	fi
+
 listing_full=${listing_part}"listings/magazin/"${issue_year}"/"
 sw=$(grep -o '@SW:\( *.*\)' ${article} | cut -d':' -f2 | tr " " "_" | tr "[A-Z]" "[a-z]")
 
     if [[ -d ${listing_full}${issue_month}"/"${sw} ]]; then
     	cd listings
-        mv -v listing* ${listing_full}${issue_month}"/"${sw}
+        mv -v listing* ${listing_full}${issue_month}"/"${sw} &&
         cd ..
         rmdir listings
     else
         echo "Create directory for listing"
-        mkdir -vp ${listing_full}${issue_month}"/"${sw}
+        mkdir -vp ${listing_full}${issue_month}"/"${sw} &&
         mod_upload_listings
     fi
 fi
@@ -675,16 +753,35 @@ fi
 function mod_move_finalized_folder {
 
 	if [ -d ${target_folder} ]; then
+		if [ -d ${target_folder}/${folder} ]; then
+			rm -fR ${target_folder}/${folder}
+		fi
 	    #...if so, move all folders there
-	    mv -i ${folder} ${target_folder}
-	    echo "Move" ${folder} "to 2_checked."
+	    mv ${folder} ${target_folder} &&
+	    echo "Moved" ${folder} "to 2_checked."
 	    echo -e "****\n"
 	else
-	    #...if not, mkdir folder
-	    #mkdir ${target_folder}
-        #mod_move_finalized_folder
-        echo "Please create folder '2_checked' by hand and call '-m'-option again."
-        exit 0
+		mkdir ${target_folder} &&
+		mod_move_finalized_folder
+	fi
+}
+
+
+## Module: MOVE SOME FINISHED ARTICLES ##
+
+function mod_move_some_finalized_folder {
+
+	if [ -d ${target_folder}/${tempfolder} ]; then
+		if [ -d ${target_folder}/${tempfolder}/${folder} ]; then
+			rm -fR ${target_folder}/${tempfolder}/${folder}
+		fi
+	    #...if so, move all folders there
+	    mv ${folder} ${target_folder}/${tempfolder} &&
+	    echo "Moved" ${folder} "to 2_checked/"${tempfolder}
+	    echo -e "****\n"
+	else
+		mkdir -p ${target_folder}/${tempfolder} &&
+        mod_move_some_finalized_folder
 	fi
 }
 
@@ -702,12 +799,12 @@ delugdvd=$(grep -e '<kicker>In eigener Sache: DELUG-DVD</kicker>' ${article})
 
 	if [ "${edi}" ] ; then
 		sed -i 's/online access="free"/online access="restricted"/' ${article}
-	    echo "Prepared XML file in ${folder} for Upload."
+	    echo "Restricted access to ${folder} configured."
 	fi
 
 	if [ "${buecher}" ] || [ "${perlsnap}" ] || [ "${delugdvd}" ]; then
 	    sed -i 's/online\ access="restricted"/online\ access="free"/' ${article}
-	    echo "Prepared XML file in ${folder} for Upload."
+	    echo "Free access to ${folder} configured."
 	fi
 }
 
@@ -718,7 +815,7 @@ delugdvd=$(grep -e '<kicker>In eigener Sache: DELUG-DVD</kicker>' ${article})
 function check {
     if [ -d ${exportpath} ]; then
         # List folders with leading digits
-        for folder in $(ls -d ../[[:digit:]]*); do
+        for folder in $(ls -d ../[[:digit:]][[:digit:]][[:digit:]]*); do
 
 	     if [[ -d ${folder} ]]; then
 				# and dive into it
@@ -749,12 +846,89 @@ function check {
     fi
 }
 
+function repair_article {
+
+echo -e "\nNext article:"${folder}
+echo -e "================================"
+# convert to UTF-8
+convert_to_utf8
+
+# this module removes "Heft-DVD" boxes that make no sense online
+mod_warnings
+mod_remove_duplicate
+mod_insecurity_pic
+mod_remove_ads
+mod_replace_bookbox
+mod_prepare_ed_letter
+mod_prepare_pics_news_zut
+mod_repair_news_headline
+mod_repair_news_box
+mod_prepare_edi
+mod_repair_urls
+mod_repair_editor_abbrevation
+mod_repair_perl_video_box
+mod_repair_comments
+mod_prepare_tooltipps
+mod_tooltipps_stars
+mod_remove_boxes
+
+# convert back to ISO-8859-15
+convert_to_iso8859_15
+
+mod_html_check
+
+while true
+do
+read -p "Do you want to change something on the article and/or take a look at the 'error.log' now? [y/n]" error
+	case ${error} in
+	y)
+		echo "Error Log:"
+		cat ${working_dir}/${error_log} | more
+		echo -e "\n"
+		echo "Starting Editor..."
+		rm ${working_dir}/${error_log}
+		sleep 2
+
+		${editor} ${article} > /dev/null 2>&1 &
+
+		# Pass changes on TXT files to HTML files
+		${bin_dir}/${satzfertig} -Hq ${article} ${article_html} 2>&1 &&
+
+		read -p "Move on to the next article? [y/n]" moveon
+			case ${moveon} in
+			y)
+				break
+				;;
+			*)
+				exit 0
+				;;
+			esac
+		break
+		;;
+	*)
+		read -p "Move on to the next article? [y/n]" moveover
+			case ${moveover} in
+			y)
+				rm ${working_dir}/${error_log}
+				break
+				;;
+			*)
+				exit 0
+				;;
+			esac
+		break
+		;;
+	esac
+done
+}
+
 #####   Main: "-r" - repair txt-files #####
 #       Repairs all kinds of bugs before conversion and shows result
 
 function repair {
+arguments=("${@}")
 
-    # check, if location is your own subfolder in "1_export", for example "kki"
+	# check, if location is your own subfolder in "1_export", for example "kki"
     sleep 2
     if [ -d ${exportpath} ]; then
 
@@ -764,86 +938,34 @@ function repair {
             chmod u+x ${working_dir}/${error_log}
         fi
 
-        ## Insert modules
-        # List folders with leading digits and dive into it
-        for folder in $(ls -d [[:digit:]]*); do
-            if [ -d ${working_dir}/${folder} ]; then
-                cd ${working_dir}/${folder}
-                echo -e "\nNext article:"${folder}
-                echo -e "================================"
-                # convert to UTF-8
-                convert_to_utf8
-
-                # this module removes "Heft-DVD" boxes that make no sense online
-                mod_warnings
-                mod_remove_duplicate
-                mod_insecurity_pic
-                mod_remove_ads
-                mod_replace_bookbox
-                mod_prepare_ed_letter
-                mod_prepare_pics_news_zut
-                mod_repair_news_headline
-                mod_repair_news_box
-                mod_prepare_edi
-                mod_repair_urls
-                mod_repair_editor_abbrevation
-                mod_repair_perl_video_box
-                mod_repair_comments
-		mod_prepare_tooltipps
-		mod_tooltipps_stars
-                mod_remove_boxes
-
-                # convert back to ISO-8859-15
-                convert_to_iso8859_15
-
-                mod_html_check
-
-                while true
-                    do
-                    read -p "Do you want to change something on the article and/or take a look at the 'error.log' now? [y/n]" error
-                        case ${error} in
-                        y)
-                            echo "Error Log:"
-                            cat ${working_dir}/${error_log} | more
-                            echo -e "\n"
-                            echo "Starting Editor..."
-                            rm ${working_dir}/${error_log}
-                            sleep 2
-                            ${editor} ${article} &&
-                            # Pass changes on TXT files to HTML files
-                            ${bin_dir}/${satzfertig} -Hq ${article} ${article_html} 2>&1 &&
-
-                            read -p "Move on to the next article? [y/n]" moveon
-                                case ${moveon} in
-                                y)
-                                    break
-                                    ;;
-                                *)
-                                    exit 0
-                                    ;;
-                                esac
-                            break
-                            ;;
-                        *)
-                            read -p "Move on to the next article? [y/n]" moveover
-                                case ${moveover} in
-                                y)
-                                    rm ${working_dir}/${error_log}
-                                    break
-                                    ;;
-                                *)
-                                    exit 0
-                                    ;;
-                                esac
-                            break
-                            ;;
-                        esac
-                    done
-                # go back in your subfolder, for example "kki"
-                cd ..
-            fi
-        done
-        echo -e "\nIf all articles look fine, you should now call 'lm_post_production -m' to extract listings and prepare files for a proper XML export.\n"
+		if  [[ "${#}" -gt 1 ]]; then
+			## Insert modules
+			# List folders with leading digits and dive into it
+			for ((i=1; i < "${#}"; i++))
+			{
+				for folder in ${arguments[$i]}; do
+					if [ -d ${working_dir}/${folder} ]; then
+						cd ${working_dir}/${folder}
+						repair_article
+					# go back in your subfolder, for example "kki"
+					cd ..
+				fi
+			done
+			}
+		echo -e "\nIf all articles look fine, you should now call 'lm_post_production -sm <folder1> <folder2> ...' to extract listings and prepare files for a proper XML export.\n"
+		else
+			## Insert modules
+			# List folders with leading digits and dive into it
+			for folder in $(ls -d [[:digit:]]*); do
+				if [ -d ${working_dir}/${folder} ]; then
+					cd ${working_dir}/${folder}
+					repair_article
+					# go back in your subfolder, for example "kki"
+					cd ..
+				fi
+			done
+			echo -e "\nIf all articles look fine, you should now call 'lm_post_production -m' to extract listings and prepare files for a proper XML export.\n"
+		fi
     else
 	echo -e "You probably started this script from the wrong dir"
         exit 0
@@ -854,6 +976,7 @@ function repair {
 ##### Main: "-m" - CONVERT LISTINGS AND MOVE FOLDERS #######
 
 function make_listings {
+arguments=("${@}")
 
     # check, if location is your own subfolder in "1_export", for example "kki"
     if [ -d ${exportpath} ]; then
@@ -864,25 +987,53 @@ function make_listings {
             chmod a+x ${working_dir}/${error_log}
         fi
 
-        ## Insert modules
-        #
-        # list folders and ls into it one by one
-        echo -e "Script generates listings now if it finds some..."
-        for folder in $(ls -d [[:digit:]]*); do
-            if [ -d ${working_dir}/${folder} ]; then
-                cd ${working_dir}/${folder}
-                # after everything is fine with article.txt, start extracting the listings
-                mod_extract_listing
-                mod_upload_listings
+		if  [[ "${#}" -gt 1 ]]; then
+			for ((i=1; i < "${#}"; i++))
+			{
+				echo -e "Script generates listings now if it finds some..."
+				for folder in ${arguments[$i]}; do
+					if [ -d ${working_dir}/${folder} ]; then
+						cd ${working_dir}/${folder}
+						
+						# after everything is fine with article.txt, start extracting the listings
+						mod_extract_listing
+						mod_upload_listings
+						# go back in your subfolder, for example "kki"
+						cd ..
+						
+						# check if $target_folder exists and move just finalized $folder in a subfolder
+						mod_move_some_finalized_folder
+					fi
+				done
+				
+			}
+			echo -e "Now upload your single articles with just 'lm_post_production -su' without arguments."
+			exit 0
+		else
+				## Insert modules
+				#
+				# list folders and ls into it one by one
+				echo -e "Script generates listings now if it finds some..."
+				if [[ $(ls -d * 2>/dev/null)  ]]; then
+					for folder in $(ls -d [[:digit:]]*); do
+						if [ -d ${working_dir}/${folder} ]; then
+							cd ${working_dir}/${folder}
+							# after everything is fine with article.txt, start extracting the listings
+							mod_extract_listing
+							mod_upload_listings
 
-                # go back in your subfolder, for example "kki"
-                cd ..
+							# go back in your subfolder, for example "kki"
+							cd ..
 
-                # check if $target_folder exists and move just finalized $folder there
-                mod_move_finalized_folder
-
-            fi
-        done
+							# check if $target_folder exists and move just finalized $folder there
+							mod_move_finalized_folder
+						fi
+					done
+				else
+					echo -e "No folders found to move."
+				fi
+				exit 0
+		fi
     else
         echo "You need to create a subfolder in '1_export' and start this script from there."
         exit 0
@@ -893,58 +1044,189 @@ function make_listings {
 # CONVERT TXT TO XML AND CHANGE XML FILES
 
 function upload {
+arguments=("${@}")
 
-    # check, if location is in "2_checked"
-    if [ -d ${target_folder} ]; then
-        ## Insert modules
-        if [ "ls -A ${target_folder}" ]; then
-            # change into '2_checked'
-            cd ${target_folder}
+# check, if location is in "2_checked"
+if [ -d ${target_folder} ]; then
+	
+	if  [[ "${#}" -eq 1 ]]; then
+		if [ "ls -A ${target_folder}/${tempfolder}" ]; then
+			# change into '2_checked/temp'
+			cd ${target_folder}/${tempfolder}
 
-            # show all folders an start conversion
-            ls -d [0-9][0-9][0-9]*
+			# list all folders in 'temp'		
+			ls -d [0-9][0-9][0-9]*
 
-            read -p "Convert all listed articles to XML - and repair XML files afterwards? [y/n]" yesyoucan
-                case ${yesyoucan} in
-                y | j)
-                    . ${bin_dir}/convert2xml.sh -y ${issue_year} -i ${issue_month} -m LM
-                    echo "Converted all articles to XML-files."
-                    ;;
-                *)
-                    exit 0
-                    ;;
-                esac
+			read -p "Convert all listed articles to XML - and repair XML files afterwards? [y/n]" yesyoucan
+				case ${yesyoucan} in
+				y | j)
+					. ${bin_dir}/convert2xml.sh -y ${issue_year} -i ${issue_month} -m LM &&
+					echo "Converted all articles to XML-files."
+					
+					;;
+				*)
+					exit 0
+					;;
+				esac
 
-        # repair things before conversion starts
-        # list folders in '2_checked' and ls into it one by one
-            for folder in $(ls -d [0-9][0-9][0-9]*); do
-                if [ -d ${target_folder}/${folder} ]; then
-                    cd ${target_folder}/${folder}
-                    mod_repair_xml
-                fi
-            done
-        else
-            echo -e "No folder found in '2_checked'."
-        fi
-    else
-        echo "This option only works if you call it from '1_export/<your_folder>'. It prepares existing XML files for the upload to our website."
-        exit 0
-    fi
+		# repair things before conversion starts
+		# list folders in '2_checked' and ls into it one by one
+			for folder in $(ls -d [0-9][0-9][0-9]*); do
+				if [ -d ${target_folder}/${tempfolder}/${folder} ]; then
+					cd ${target_folder}/${tempfolder}/${folder}
+					mod_repair_xml
+					cd ..
+					if [ -d ${target_folder}/${folder} ]; then
+						rm -fR ${target_folder}/${folder}
+					fi
+					mv ${target_folder}/${tempfolder}/${folder}/ ${target_folder}/${folder}/ &&
+					rm -fR ${folder}
+				fi
+			done
+			cd ..
+			rm -fR ${target_folder}/${tempfolder}
+			echo -e "Repaired all XML files, ready for Upload."
+			exit 0
+		else
+			echo -e "No folder found in '2_checked/temp'. Something went wrong."
+			exit 0
+		fi
+	else
+		## Insert modules
+		if [ "ls -A ${target_folder}" ]; then
+			# change into '2_checked'
+			cd ${target_folder}
+
+			# show all folders an start conversion
+			ls -d [0-9][0-9][0-9]*
+
+			read -p "Convert all listed articles to XML - and repair XML files afterwards? [y/n]" yesyoucan
+				case ${yesyoucan} in
+				y | j)
+					. ${bin_dir}/convert2xml.sh -y ${issue_year} -i ${issue_month} -m LM &&
+					echo "Converted all articles to XML-files."
+					;;
+				*)
+					exit 0
+					;;
+				esac
+
+		# repair things before conversion starts
+		# list folders in '2_checked' and ls into it one by one
+			for folder in $(ls -d [0-9][0-9][0-9]*); do
+				if [ -d ${target_folder}/${folder} ]; then
+					cd ${target_folder}/${folder}
+					mod_repair_xml
+					cd ..
+				fi
+			done
+			echo -e "Repaired all XML files, ready for Upload."
+			exit 0
+		else
+			echo -e "No folders found in '2_checked'."
+		fi
+	fi
+else
+	echo "This option only works if you call it from '1_export/<your_folder>'. It prepares existing XML files for the upload to our website."
+	exit 0
+fi
 }
 
-function start {
+##### Start: Sort arguments
+# SORTS COMMANDLINE ARGUMENTS TO SEVERAL FUNCTIONS
 
-    if [ "${1}" == "" ] || [ "${1}" == "-h" ] || [ "${1}" == "--help" ]; then
-        get_help
-    elif [ "${1}" == "-c" ] || [ "${1}" == "--check" ]; then
-        check
-    elif [ "${1}" == "-r" ] || [ "${1}" == "--repair" ]; then
-        repair
-    elif [ "${1}" == "-m" ] || [ "${1}" == "--make_listings" ]; then
-        make_listings
-    elif [ "${1}" == "-u" ] || [ "${1}" == "--upload" ]; then
-        upload
-    fi
+function start 
+{
+
+# Lock setzen oder entfernen
+
+if ! touch /tmp/lm_post_production.lock; then
+    echo -e "Kein Lock gefunden.\n" >&2
+    exit 1
+else
+    echo -e "Offenbar nutzt gerade ein Kollege das Skript 'lm_post_production' oder das Lockfile in /tmp wurde nicht korrekt entfernt." 
+fi
+
+trap 'rm -rf /tmp/lm_post_production.lock' EXIT  # remove the lockdir on exit
+
+# Übergebene Argumente
+arguments=("${@}")
+
+# Zahl der übergebenen Argumente:" ${#}
+# Zeichenanzahl der übergebenen Argumente:" ${#arguments}
+
+# Ohne Argument oder beim Vergessen des '-' 
+if [ "${#arguments}" -eq 0 ] || [ "${#arguments}" -eq 1 ]; then
+	{
+			ls /tmp*
+			sleep 5
+			usage
+			rot=$(tput setaf 1)
+			reset=$(tput sgr0)			
+			echo -e ""			
+			echo -e "-----------------------------------------------"
+			echo -e ${rot}"Die verfügbaren Schalter für 'lm-post-production'."${reset}
+
+	}
+
+
+# '-r', '-c' usw.
+elif [ "${#arguments}" -eq 2 ]; then
+	{
+		if [ "${arguments[$1]}" == "-h" ] || [ "${arguments[$1]}" == "--help" ]; then
+			get_help
+		
+		elif [ "${arguments[$i]}" == "-c" ] || [ "${arguments[$i]}" == "--check" ]; then
+			check
+		
+		elif [ "${arguments[$i]}" == "-r" ] || [ "${arguments[$i]}" == "--repair" ]; then
+			repair
+
+		elif [ "${arguments[$i]}" == "-m" ] || [ "${arguments[$i]}" == "--make_listings" ]; then
+			make_listings
+
+		elif [ "${arguments[$i]}" == "-u" ] || [ "${arguments[$i]}" == "--upload" ]; then
+			upload
+
+		else
+			usage
+			rot=$(tput setaf 1)
+			reset=$(tput sgr0)			
+			echo -e ""			
+			echo -e "-----------------------------------------------"
+			echo -e ${rot}"Der Schalter ist unbekannt, bitte starte das Skript erneut..."${reset}
+		fi
+	}
+
+# längere Schalter '-rs', '-ms' usw.
+elif [ "${#arguments}" -gt 2 ]; then
+	{
+		# prüft, ob der Schalter existiert und ob der User Ordnernamen angegeben hat
+		if [ "${arguments[$i]}" == "-rs" ] || [ "${arguments[$i]}" == "--repair_some_articles" ] && [ "${#}" -gt 1 ]; then
+			shift	# schneide erstes Argument '-rs' o.ä. ab
+			repair "${@}"
+	
+		elif [ "${arguments[$i]}" == "-ms" ] || [ "${arguments[$i]}" == "--make_some_listings" ] && [ "${#}" -gt 1 ]; then
+			shift
+			make_listings "${@}"
+	
+		elif [ "${arguments[$i]}" == "-us" ] || [ "${arguments[$i]}" == "--upload_some_articles" ]; then
+			#shift
+			#upload "${@}"
+			echo -e "Diese Option funktioniert noch nicht."
+			
+		else	
+			usage
+			rot=$(tput setaf 1)
+		        reset=$(tput sgr0)
+			echo -e ""		
+			echo -e "-----------------------------------------------"
+			echo -e ${rot}"Dieser Parameter erfordert ein oder mehrere Artikel-Ordnernamen als Argumente."${reset}
+		fi
+	}
+
+fi
 }
 
-start "${1}"
+#set -x
+start "${@}"
