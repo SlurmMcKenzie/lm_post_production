@@ -888,14 +888,12 @@ read -p "Möchtest Du etwas am Artikel (in der 'article.txt') ändern und/oder e
 		echo "Starte Editor..."
 		rm ${working_dir}/${error_log}
 		sleep 2
-		set -x
 		${editor} ${article} > /dev/null 2>&1 &
 
 		read -p "Weiter zum nächsten Artikel? [j/n]" moveon
 		# Pass changes on TXT files to HTML files
 		${bin_dir}/${satzfertig} -Hq ${article} ${article_html} 2>&1 &&
 
-		set +x
 			case ${moveon} in
 			j | y)
 				break
@@ -927,7 +925,10 @@ done
 #       Repairs all kinds of bugs before conversion and shows result
 
 function repair {
+
+# Array holds x values from [0] .. [x] 
 arguments=("${@}")
+echo "${#}"
 
 	# check, if location is your own subfolder in "1_export", for example "kki"
     sleep 2
@@ -939,20 +940,20 @@ arguments=("${@}")
             chmod u+x ${working_dir}/${error_log}
         fi
 
-		if  [[ "${#}" -gt 1 ]]; then
+		if  [[ "${#}" -gt 0 ]]; then
 			## Insert modules
 			# List folders with leading digits and dive into it
-			for ((i=1; i < "${#}"; i++))
-			{
-				for folder in ${arguments[$i]}; do
+
+			for ((runs=0;runs<${#};runs++)); do
+				for folder in ${arguments[$runs]}; do
 					if [ -d ${working_dir}/${folder} ]; then
 						cd ${working_dir}/${folder}
 						repair_article
 					# go back in your subfolder, for example "kki"
 					cd ..
-				fi
+					fi
+				done
 			done
-			}
 		echo -e "\nWenn alle Artikel ('article.txt') gut aussehen, könntest Du jetzt 'lm_post_production -ms <Ordner1> <Ordner2> ...' aufrufen, um die Listings zu extrahieren und die Dateien auf den XML-Export vorzubereiten.\n"
 		else
 			## Insert modules
@@ -987,12 +988,13 @@ arguments=("${@}")
             touch ${working_dir}/${error_log}
             chmod a+x ${working_dir}/${error_log}
         fi
+		# If there is one argument/folder attached, do this
+		if  [[ "${#}" -gt 0 ]]; then
 
-		if  [[ "${#}" -gt 1 ]]; then
-			for ((i=1; i < "${#}"; i++))
-			{
+			# loop through every argument/folder
+			for ((mloop=0; mloop<${#}; mloop++)); do
 				echo -e "Script generates listings now if it finds some..."
-				for folder in ${arguments[$i]}; do
+				for folder in ${arguments[$mloop]}; do
 					if [ -d ${working_dir}/${folder} ]; then
 						cd ${working_dir}/${folder}
 						
@@ -1006,8 +1008,7 @@ arguments=("${@}")
 						mod_move_some_finalized_folder
 					fi
 				done
-				
-			}
+			done	
 			echo -e "Nun kannst Du einen oder mehrere Artikel in XML-Versionen verwandeln. Dazu genügt der Aufruf von 'lm_post_production -us' ohne weitere Argumente."
 			exit 0
 		else
@@ -1050,9 +1051,10 @@ arguments=("${@}")
 # check, if location is in "2_checked"
 if [ -d ${target_folder} ]; then
 	
-	if  [[ "${#}" -eq 1 ]]; then
+	if  [[ "${#}" -gt 0 ]]; then
+		
 		if [ "ls -A ${target_folder}/${tempfolder}" ]; then
-			# change into '2_checked/temp'
+			# walk into '2_checked/temp'
 			cd ${target_folder}/${tempfolder}
 
 			# list all folders in 'temp'		
@@ -1158,8 +1160,7 @@ arguments=("${@}")
 # Ohne Argument oder beim Vergessen des '-' 
 if [ "${#arguments}" -eq 0 ] || [ "${#arguments}" -eq 1 ]; then
 	{
-			ls /tmp*
-			sleep 5
+
 			usage
 			rot=$(tput setaf 1)
 			reset=$(tput sgr0)			
@@ -1211,9 +1212,8 @@ elif [ "${#arguments}" -gt 2 ]; then
 			make_listings "${@}"
 	
 		elif [ "${arguments[$i]}" == "-us" ] || [ "${arguments[$i]}" == "--upload_some_articles" ]; then
-			#shift
-			#upload "${@}"
-			echo -e "Diese Option funktioniert noch nicht."
+			shift
+			upload "${@}"
 			
 		else	
 			usage
@@ -1228,5 +1228,5 @@ elif [ "${#arguments}" -gt 2 ]; then
 fi
 }
 
-#set -x
+set -x
 start "${@}"
