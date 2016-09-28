@@ -928,7 +928,6 @@ function repair {
 
 # Array holds x values from [0] .. [x] 
 arguments=("${@}")
-echo "${#}"
 
 	# check, if location is your own subfolder in "1_export", for example "kki"
     sleep 2
@@ -948,6 +947,7 @@ echo "${#}"
 				for folder in ${arguments[$runs]}; do
 					if [ -d ${working_dir}/${folder} ]; then
 						cd ${working_dir}/${folder}
+						# backup HERE!!
 						repair_article
 					# go back in your subfolder, for example "kki"
 					cd ..
@@ -961,6 +961,7 @@ echo "${#}"
 			for folder in $(ls -d [[:digit:]]*); do
 				if [ -d ${working_dir}/${folder} ]; then
 					cd ${working_dir}/${folder}
+					# backup HERE!!
 					repair_article
 					# go back in your subfolder, for example "kki"
 					cd ..
@@ -1135,21 +1136,33 @@ else
 fi
 }
 
-##### Start: Sort arguments
-# SORTS COMMANDLINE ARGUMENTS TO SEVERAL FUNCTIONS
+##### Lock: Do a lock
 
-function start 
+function lock
 {
-
 # Lock setzen oder entfernen
-
 if ! mkdir /tmp/lm_post_production.lock; then
-    echo -e "Kein Lock gefunden.\n" >&2
+    echo -e "Offenbar verwendet gerade jemand anders das Programm. Falls nicht, liegt die Lock-Datei als Ordner in /tmp/\n" >&2
     exit 1
 fi
 
 # Lockdir am Ende entfernen
 trap 'rm -rf /tmp/lm_post_production.lock' EXIT
+}
+
+##### Backup the articles and pictures before the script starts
+
+function backup
+{
+echo ""
+}
+
+##### Start: Sort arguments
+# SORTS COMMANDLINE ARGUMENTS TO SEVERAL FUNCTIONS
+
+function start 
+{
+lock
 
 # Übergebene Argumente
 arguments=("${@}")
@@ -1161,12 +1174,12 @@ arguments=("${@}")
 if [ "${#arguments}" -eq 0 ] || [ "${#arguments}" -eq 1 ]; then
 	{
 
-			usage
-			rot=$(tput setaf 1)
-			reset=$(tput sgr0)			
-			echo -e ""			
-			echo -e "-----------------------------------------------"
-			echo -e ${rot}"Die verfügbaren Schalter für 'lm-post-production'."${reset}
+		usage
+		rot=$(tput setaf 1)
+		reset=$(tput sgr0)			
+		echo -e ""			
+		echo -e "-----------------------------------------------"
+		echo -e ${rot}"Die verfügbaren Schalter für 'lm-post-production'."${reset}
 
 	}
 
@@ -1228,5 +1241,5 @@ elif [ "${#arguments}" -gt 2 ]; then
 fi
 }
 
-set -x
+# set -x
 start "${@}"
