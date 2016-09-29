@@ -30,7 +30,11 @@ issue_month=$(pwd | grep -o "[2][0][0-9][0-9]..." | tail -c 3)
 function convert_to_utf8 {
 
 if [ -e article.txt ]; then
-    chmod 755 ${article} &&
+    # that wouldn't work for some strange reason
+    #chmod 755 ${article} &&
+    # Workaround
+    cp ${article} article.txt.copy &&
+    mv article.txt.copy ${article} &&
     ${iconv} -f ISO-8859-15 -t UTF-8 ${article} -o article.txt.tmp
     wait
     mv article.txt.tmp article.txt
