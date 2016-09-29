@@ -16,6 +16,7 @@ working_dir=$(pwd)
 bin_dir="/opt/lnm/bin"
 exportpath=${working_dir}"/../../1_export"
 target_folder=${working_dir}"/../../2_checked"
+backup="../../backup"
 tempfolder="temp"
 editor=/usr/bin/gedit
 browser=/usr/bin/firefox
@@ -850,6 +851,7 @@ function repair_article {
 
 echo -e "\nNächster Artikel:"${folder}
 echo -e "================================"
+backup
 # convert to UTF-8
 convert_to_utf8
 
@@ -926,7 +928,7 @@ done
 
 function repair {
 
-# Array holds x values from [0] .. [x] 
+# Array holds x values from [0] .. [x]
 arguments=("${@}")
 
 	# check, if location is your own subfolder in "1_export", for example "kki"
@@ -947,7 +949,6 @@ arguments=("${@}")
 				for folder in ${arguments[$runs]}; do
 					if [ -d ${working_dir}/${folder} ]; then
 						cd ${working_dir}/${folder}
-						# backup HERE!!
 						repair_article
 					# go back in your subfolder, for example "kki"
 					cd ..
@@ -961,7 +962,6 @@ arguments=("${@}")
 			for folder in $(ls -d [[:digit:]]*); do
 				if [ -d ${working_dir}/${folder} ]; then
 					cd ${working_dir}/${folder}
-					# backup HERE!!
 					repair_article
 					# go back in your subfolder, for example "kki"
 					cd ..
@@ -1154,7 +1154,17 @@ trap 'rm -rf /tmp/lm_post_production.lock' EXIT
 
 function backup
 {
-echo ""
+echo -e "Lege Backup des Artikels an..."
+
+if [ -d ${backup}/${folder} ]; then
+	echo -e "Backup für "${folder} "existiert bereits."
+else
+	echo -e "Erzeuge ein Backup von "${folder}"..."
+	mkdir -p ${backup}/${folder}
+	cp article.txt ${backup}/${folder}/
+	cp -fR images ${backup}/${folder}/
+fi
+
 }
 
 ##### Start: Sort arguments
