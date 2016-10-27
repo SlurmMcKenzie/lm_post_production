@@ -85,7 +85,7 @@ function usage {
     
     echo -e "${bold}BEISPIELE${normal}"
     echo -e "\tAlle Dateien reparieren: 	\t\tlm_post_production -r"
-    echo -e "\tAusgewählte Dateien reparieren: 	\tlm_post_production rs 003-003-editorial 006-008-news"
+    echo -e "\tAusgewählte Dateien reparieren: 	\tlm_post_production-rs 003-003-editorial 006-008-news"
     echo -e "\tEinige Dateien hochladen: 	\t\tlm_post_production -us [OHNE OPTIONEN]\n"
 	
     echo -e "${bold}KURZBESCHREIBUNG${normal}"
