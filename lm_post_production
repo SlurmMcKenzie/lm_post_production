@@ -1239,7 +1239,7 @@ elif [ "${#arguments}" -gt 2 ]; then
 			make_listings "${@}"
 	
 		elif [ "${arguments[$i]}" == "-us" ] || [ "${arguments[$i]}" == "--upload_some_articles" ]; then
-			shift
+			#shift
 			upload "${@}"
 			
 		else	
