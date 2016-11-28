@@ -10,6 +10,7 @@ error_log=error.log
 article_html=article.html
 satzfertig=sf
 iconv=/usr/bin/iconv
+skriptuser=$(whoami)
 
 # Path Variables
 working_dir=$(pwd)
@@ -52,6 +53,7 @@ function convert_to_iso8859_15 {
 
 if [ -e article.txt ]; then
     chmod 755 ${article} &&
+    wait
     ${iconv} -f UTF-8 -t ISO-8859-15 ${article} -o article.txt.tmp
     wait
     mv article.txt.tmp article.txt
@@ -85,8 +87,8 @@ function usage {
     
     echo -e "${bold}BEISPIELE${normal}"
     echo -e "\tAlle Dateien reparieren: 	\t\tlm_post_production -r"
-    echo -e "\tAusgewählte Dateien reparieren: 	\tlm_post_production-rs 003-003-editorial 006-008-news"
-    echo -e "\tEinige Dateien hochladen: 	\t\tlm_post_production -us [OHNE OPTIONEN]\n"
+    echo -e "\tAusgewählte Dateien reparieren: 	\tlm_post_production -sr 003-003-editorial 006-008-news"
+    echo -e "\tEinige Dateien hochladen: 	\t\tlm_post_production -su [OHNE OPTIONEN]\n"
 	
     echo -e "${bold}KURZBESCHREIBUNG${normal}"
     echo -e "\tLege einen eigenen Unterordner im Verzeichnis '1_export' an. Verschiebe die 
@@ -707,7 +709,7 @@ if [ "$avail" ]; then
 
     mkdir listings >/dev/null 2>&1
     chmod a+rw listings &&
-
+    wait
     ${satzfertig} -nL listings ${article} > /dev/null 2>&1 &&
 
     cd listings
@@ -730,8 +732,8 @@ function mod_upload_listings {
 
 if [[ -d listings ]]; then
 
-	if [[ -d /home/kkissling/Linux-Magazin/Listings ]]; then
-		listing_part="/home/kkissling/Linux-Magazin/Listings/"
+	if [[ -d /home/${skriptuser}/Linux-Magazin/Listings ]]; then
+		listing_part="/home/${skriptuser}/Linux-Magazin/Listings/"
 	else
 		listing_part=$(pwd | grep -o '.*production/')
 	fi
@@ -943,6 +945,7 @@ arguments=("${@}")
         if [ ! -f ${working_dir}/${error_log} ]; then
             touch ${working_dir}/${error_log}
             chmod u+x ${working_dir}/${error_log}
+	    wait
         fi
 
 		if  [[ "${#}" -gt 0 ]]; then
@@ -992,6 +995,7 @@ arguments=("${@}")
         if [ -f ${working_dir}/${error_log} ]; then
             touch ${working_dir}/${error_log}
             chmod a+x ${working_dir}/${error_log}
+            wait
         fi
 		# If there is one argument/folder attached, do this
 		if  [[ "${#}" -gt 0 ]]; then
@@ -1239,7 +1243,7 @@ elif [ "${#arguments}" -gt 2 ]; then
 			make_listings "${@}"
 	
 		elif [ "${arguments[$i]}" == "-us" ] || [ "${arguments[$i]}" == "--upload_some_articles" ]; then
-			#shift
+			shift
 			upload "${@}"
 			
 		else	
@@ -1255,5 +1259,5 @@ elif [ "${#arguments}" -gt 2 ]; then
 fi
 }
 
-# set -x
+#set -x
 start "${@}"
