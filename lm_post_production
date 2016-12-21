@@ -31,9 +31,12 @@ issue_month=$(pwd | grep -o "[2][0][0-9][0-9]..." | tail -c 3)
 function convert_to_utf8 {
 
 if [ -e article.txt ]; then
-    # that wouldn't work for some strange reason
-    #chmod 755 ${article} &&
-    # Workaround
+    # Try to make 'article.txt' executable, to address 
+    # https://github.com/SlurmMcKenzie/lm_post_production/issues/19#issue-196916519
+    chmod 755 ${article} &&
+    wait
+    sync
+    # Workaround, might be removed, if 'wait' and 'sync' work
     cp ${article} article.txt.copy &&
     mv article.txt.copy ${article} &&
     ${iconv} -f ISO-8859-15 -t UTF-8 ${article} -o article.txt.tmp
@@ -67,7 +70,7 @@ fi
 
 ##  Module: DISPLAY HELPFILE FOR THE PROGRAM ##
 function usage {
-	bold=`tput bold`
+    bold=`tput bold`
     normal=`tput sgr0`
 
     echo -e "${bold}SYNOPSIS${normal}"
@@ -87,8 +90,8 @@ function usage {
     
     echo -e "${bold}BEISPIELE${normal}"
     echo -e "\tAlle Dateien reparieren: 	\t\tlm_post_production -r"
-    echo -e "\tAusgewählte Dateien reparieren: 	\tlm_post_production -sr 003-003-editorial 006-008-news"
-    echo -e "\tEinige Dateien hochladen: 	\t\tlm_post_production -su [OHNE OPTIONEN]\n"
+    echo -e "\tAusgewählte Dateien reparieren: 	\tlm_post_production -rs 003-003-editorial 006-008-news"
+    echo -e "\tEinige Dateien hochladen: 	\t\tlm_post_production -us [OHNE OPTIONEN]\n"
 	
     echo -e "${bold}KURZBESCHREIBUNG${normal}"
     echo -e "\tLege einen eigenen Unterordner im Verzeichnis '1_export' an. Verschiebe die 
