@@ -804,7 +804,7 @@ article=article.xml
 
 edi=$(grep -e '<section>Editorial</section>' ${article})
 buecher=$(grep -e '<subject>Bücher</subject>' ${article})
-perlsnap=$(grep -e '<subject>Perl-Snapshot</subject>' ${article})
+perlsnap=$(grep -e '<subject>Snapshot</subject>' ${article})
 delugdvd=$(grep -e '<kicker>In eigener Sache: DELUG-DVD</kicker>' ${article})
 
 	if [ "${edi}" ] ; then
