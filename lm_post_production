@@ -26,8 +26,42 @@ browser=/usr/bin/firefox
 issue_year=$(pwd | grep -o "[2][0][0-9][0-9]")
 issue_month=$(pwd | grep -o "[2][0][0-9][0-9]..." | tail -c 3)
 
-## Convert article.txt to UTF-8 otherwise script breaks
 
+## LOCK: SET A LOCK ##
+function lock
+{
+
+# Check, if someone is using a Lock
+if ! mkdir /tmp/lm_post_production.lock; then
+    echo -e "Offenbar verwendet gerade jemand anders das Programm. Falls nicht, liegt die Lock-Datei als Ordner in /tmp/\n" >&2
+    exit 1
+fi
+
+# Remove *.lock dir at the end
+trap 'rm -rf /tmp/lm_post_production.lock' EXIT
+}
+
+
+## BACKUP ARTICLES BEFORE CHANGING ANYTHING ##
+function backup
+{
+
+
+echo -e "Lege Backup des Artikels an..."
+
+if [ -d ${backup}/${folder} ]; then
+	echo -e "Backup für "${folder} "existiert bereits."
+else
+	echo -e "Erzeuge ein Backup von "${folder}"..."
+	mkdir -p ${backup}/${folder}
+	cp article.txt ${backup}/${folder}/
+	cp -fR images ${backup}/${folder}/
+fi
+
+}
+
+
+## CONVERT ARTICLE.TXT TO UTF-8 OTHERWISE SCRIPT BREAKS ##
 function convert_to_utf8 {
 
 if [ -e article.txt ]; then
@@ -50,8 +84,7 @@ fi
 }
 
 
-## Convert article.txt back to ISO-8859-15
-
+## CONVERT ARTICLE.TXT BACK TO ISO-8859-15 ##
 function convert_to_iso8859_15 {
 
 if [ -e article.txt ]; then
@@ -101,6 +134,7 @@ function usage {
 
 }
 
+##  Module: DISPLAY HELPFILE FOR THE PROGRAM ##
 function get_help {
 
     bold=`tput bold`
@@ -183,11 +217,10 @@ function get_help {
     exit 0
 }
 
-## Module: WARNS WHERE MANUAL CHANGES ARE NECESSARY
-# Warnings could be removed with future solutions
-
+## Module: WARNS WHERE MANUAL CHANGES ARE NECESSARY ##
 function mod_warnings {
 
+# Warnings could be removed with future solutions
 # warns, if unwanted elements are found inside a box
 warning_a1=$(grep -o '^@[A-Z]*:' ${article} | grep -B1 '@KE' | grep -n '@L:')
 warning_a2=$(grep -o '^@[A-Z]*:' ${article} | grep -B1 '@KE' | grep -n '@BI:')
@@ -264,7 +297,6 @@ fi
 
 
 ##  Module: REMOVE ALL COMMENTS EXCEPT THE ONE WITH ID ##
-
 function mod_repair_comments {
 
 # Deletes every comment except that @#:ID:...
@@ -284,6 +316,8 @@ occurence_id=$(grep -c '^@#: *ID: *[0-9]' ${article})
     fi
 }
 
+
+## Module: REMOVE DOUBLE PICS IN INSEC NEWS ##
 function mod_insecurity_pic {
 
 # remove standard-pic from Insec if there are two pics or more
@@ -299,8 +333,7 @@ artefakt=$(grep -n '@BI:.*123[rR][fF].*' ${article} | cut -d ":" -f 1 | tail -n 
     fi
 }
 
-# deletes needless Ads and cover pictures
-
+## Module: DELETE NEEDLESS ADS AND COVER PICS ##
 function mod_remove_ads {
 
 ads=$(grep -e '@B.: *.*_ANZ_' ${article})
@@ -316,8 +349,7 @@ ads=$(grep -e '@B.: *.*_ANZ_' ${article})
 }
 
 
-## Module: REMOVE UNWANTED BOXES
-
+## Module: FIND AND REMOVE BROKEN BOXES I ##
 function mod_find_broken_boxes {
 
 	endbox=$(grep -n -e "^@KE" ${article} | cut -d ":" -f1)
@@ -349,6 +381,8 @@ function mod_find_broken_boxes {
 	done
 }
 
+
+## Module: FIND AND REMOVE BROKEN BOXES II ##
 function mod_remove_boxes {
 
 	startbox=$(grep -n -e "^@KT: *Inhalt\|^@KT: *D[eE][lL][uU][gG]\|^@KT: *H[Ee][fF][tT]-DVD" ${article} | cut -d ":" -f1)
@@ -361,11 +395,11 @@ function mod_remove_boxes {
 	fi
 }
 
-##  Module: REMOVE DUPLICATE TITLE PICTURES ##
-#   removes duplicate title pics in "sw_einf"
 
+##  Module: REMOVE DUPLICATE TITLE PICTURES ##
 function mod_remove_duplicate {
 
+#   removes duplicate title pics in "sw_einf"
 keyword=$(grep -e '@SW:*Einf.hrung' ${article})
 category=$(grep -e '@R:*Software' ${article})
 dupimage=$(grep -c 'DVDgold' ${article})
@@ -378,8 +412,8 @@ secimage=$(grep -e 'DVDgold' ${article} | tail -1)
     fi
 }
 
-## Module: Control Box Title in News ##
 
+## Module: CHECK KURZNACHRICHTEN TITLE IN NEWS ##
 function mod_repair_news_box {
 
 news=$(grep -e '@SW: *News' ${article})
@@ -395,8 +429,8 @@ if [ "${news}" ] ; then
 fi
 }
 
-##  Module: FILL DACHZEILE IN ZUT ##
 
+##  Module: PASTE TEXT IN DACHZEILE IN ZUT ##
 function mod_repair_news_headline {
 
 zut=$(grep -e '@SW: *Zahlen & Trends' ${article})
@@ -413,7 +447,6 @@ news=$(grep -e '@SW: *News' ${article})
 
 
 ##  Module: REMOVE DOUBLE LINES WITH EMPTY TABS ##
-
 function mod_remove_tablines {
 
 # Grep only those lines that consist only in Tabs
@@ -430,7 +463,6 @@ tabs=$(grep -n '^        [^[:alnum:]]*$' ${article} | cut -d ":" -f1)
 
 
 ## Module: CHANGE PICTURES IN EDITORIAL ##
-
 function mod_prepare_edi {
 
 edi=$(grep -e '@R: *Editorial' ${article})
@@ -465,7 +497,6 @@ edi=$(grep -e '@R: *Editorial' ${article})
 
 
 ## Module: REPLACE BOXES IN BOOK ARTICLE ##
-
 function mod_replace_bookbox {
 
 buecher=$(grep -e '@SW:*B.cher' ${article})
@@ -480,7 +511,6 @@ infobox=$(grep -c '^@IT:.*Info' ${article})
 
 
 ## Module: FILL OUT HEADER LINE IN LETTERS TO THE EDITOR ##
-
 function mod_prepare_ed_letter {
 
 leserbriefe=$(grep -e '@SW:*Leserbriefe' ${article})
@@ -495,9 +525,9 @@ fi
 
 
 ## Module: CHANGE PIC ORDER IN NEWS AND ZUT ##
-# Needed for XML Upload
-
 function mod_prepare_pics_news_zut {
+
+# Needed for XML Upload
 
 news=$(grep -e '@SW: *News' ${article})
 zut=$(grep -e '@SW: *Zahlen & Trends' ${article})
@@ -532,7 +562,6 @@ fi
 
 
 ## Module: PREPARE TOOLTIPPS ##
-
 function mod_prepare_tooltipps {
 
 tooltipps=$(grep -e '@T: *Tooltipps' ${article})
@@ -580,9 +609,7 @@ fi
 }
 
 
-
-## Module: Import stars in Tooltipps
-
+## Module: IMPORT STARS IN TOOLTIPPS ##
 function mod_tooltipps_stars {
 
 tooltipps_stars=$(grep -e '@T: *Tooltipps' ${article})
@@ -623,9 +650,7 @@ fi
 }
 
 
-
-## Module: REMOVE WHITESPACES, SQUARE BRACKETS FROM URLs
-
+## Module: REMOVE WHITESPACES, SQUARE BRACKETS FROM URLs ##
 function mod_repair_urls {
 
 urls_space=$(grep -o "\(<U> *.*[[:space:]]*.*<U>\)" ${article} | grep "[[:space:]]")
@@ -645,7 +670,6 @@ urls_brkt=$(grep -o "\(<U> *.*<U>]\)\|\(http:/<U>\)\|\(<U> *.*]\)\|\(]<U>[[:grap
 
 
 ## Module: USE SATZFERTIG AND CHECK RESULT IN BROWSER ##
-
 function mod_html_check {
 
 # write sf stderr and stdout in error.log
@@ -670,8 +694,7 @@ while true
 }
 
 
-## Module: ERASE EMPTY SPACES IN EDITORS ABBREVATION
-
+## Module: ERASE EMPTY SPACES IN EDITORS ABBREVATION ##
 function mod_repair_editor_abbrevation {
 
 abbrevation=$(grep -n "\((<I>[[:space:]]*.*[[:space:]]<I>)\)" ${article} | grep "[[:space:]]")
@@ -687,8 +710,7 @@ matches=$(grep -o "\((<I>[[:space:]]*.*[[:space:]]<I>)\)" ${article} | grep -c "
 }
 
 
-## Module: REPAIR PERL VIDEO BOX
-
+## Module: REPAIR PERL VIDEO BOX ##
 function mod_repair_perl_video_box {
 
 online=$(grep -o "<U><U>.*$" ${article})
@@ -698,8 +720,8 @@ online=$(grep -o "<U><U>.*$" ${article})
     fi
 }
 
-## Module: EXTRACT LISTINGS FROM ARTICLES ##
 
+## Module: EXTRACT LISTINGS FROM ARTICLES ##
 function mod_extract_listing {
 
 avail=$(grep "@KT: *Listing 1" ${article})
@@ -729,8 +751,7 @@ fi
 }
 
 
-## Module: UPLOAD LISTINGS TO SERVER
-
+## Module: UPLOAD LISTINGS TO SERVER ##
 function mod_upload_listings {
 
 if [[ -d listings ]]; then
@@ -759,7 +780,6 @@ fi
 
 
 ## Module: MOVE FINISHED ARTICLES ##
-
 function mod_move_finalized_folder {
 
 	if [ -d ${target_folder} ]; then
@@ -778,7 +798,6 @@ function mod_move_finalized_folder {
 
 
 ## Module: MOVE SOME FINISHED ARTICLES ##
-
 function mod_move_some_finalized_folder {
 
 	if [ -d ${target_folder}/${tempfolder} ]; then
@@ -797,7 +816,6 @@ function mod_move_some_finalized_folder {
 
 
 ## Module: REPAIR XML ##
-
 function mod_repair_xml {
 
 article=article.xml
@@ -818,11 +836,12 @@ delugdvd=$(grep -e '<kicker>In eigener Sache: DELUG-DVD</kicker>' ${article})
 	fi
 }
 
+
 #####   Main: "-c" - check for 'article.txt' #####
-#       Checks, if export from Indesign worked and there is an 'article.txt' in every folder
-
-
 function check {
+
+# Checks, if export from Indesign worked and there is an 'article.txt' in every folder
+
     if [ -d ${exportpath} ]; then
         # List folders with leading digits
         for folder in $(ls -d ../[[:digit:]][[:digit:]][[:digit:]]*); do
@@ -932,10 +951,11 @@ read -p "Möchtest Du etwas am Artikel (in der 'article.txt') ändern und/oder e
 done
 }
 
-#####   Main: "-r" - repair txt-files #####
-#       Repairs all kinds of bugs before conversion and shows result
 
+#####   Main: "-r" - repair txt-files #####
 function repair {
+
+# Repairs all kinds of bugs before conversion and shows result
 
 # Array holds x values from [0] .. [x]
 arguments=("${@}")
@@ -987,8 +1007,10 @@ arguments=("${@}")
 
 
 ##### Main: "-m" - CONVERT LISTINGS AND MOVE FOLDERS #######
-
 function make_listings {
+
+
+
 arguments=("${@}")
 
     # check, if location is your own subfolder in "1_export", for example "kki"
@@ -1005,7 +1027,7 @@ arguments=("${@}")
 
 			# loop through every argument/folder
 			for ((mloop=0; mloop<${#}; mloop++)); do
-				echo -e "Script generates listings now if it finds some..."
+				echo -e "Das Skript generiert und verschiebt die Listings, wenn es welche findet..."
 				for folder in ${arguments[$mloop]}; do
 					if [ -d ${working_dir}/${folder} ]; then
 						cd ${working_dir}/${folder}
@@ -1054,10 +1076,12 @@ arguments=("${@}")
     fi
 }
 
+
 ##### Main -u: Prepare XML files for Upload
+function upload {
+
 # CONVERT TXT TO XML AND CHANGE XML FILES
 
-function upload {
 arguments=("${@}")
 
 # check, if location is in "2_checked"
@@ -1147,51 +1171,23 @@ else
 fi
 }
 
-##### Lock: Do a lock
 
-function lock
-{
-# Lock setzen oder entfernen
-if ! mkdir /tmp/lm_post_production.lock; then
-    echo -e "Offenbar verwendet gerade jemand anders das Programm. Falls nicht, liegt die Lock-Datei als Ordner in /tmp/\n" >&2
-    exit 1
-fi
 
-# Lockdir am Ende entfernen
-trap 'rm -rf /tmp/lm_post_production.lock' EXIT
-}
-
-##### Backup the articles and pictures before the script starts
-
-function backup
-{
-echo -e "Lege Backup des Artikels an..."
-
-if [ -d ${backup}/${folder} ]; then
-	echo -e "Backup für "${folder} "existiert bereits."
-else
-	echo -e "Erzeuge ein Backup von "${folder}"..."
-	mkdir -p ${backup}/${folder}
-	cp article.txt ${backup}/${folder}/
-	cp -fR images ${backup}/${folder}/
-fi
-
-}
-
-##### Start: Sort arguments
-# SORTS COMMANDLINE ARGUMENTS TO SEVERAL FUNCTIONS
-
+##### Start: Sort arguments ####
 function start 
 {
+
+# Passes commandline arguments to different functions 
+
 lock
 
-# Übergebene Argumente
+# Passed arguments
 arguments=("${@}")
 
-# Zahl der übergebenen Argumente:" ${#}
-# Zeichenanzahl der übergebenen Argumente:" ${#arguments}
+# Number of passed arguments:" ${#}
+# Number of chars of passed arguments:" ${#arguments}
 
-# Ohne Argument oder beim Vergessen des '-' 
+# without argument or forgetting it '-' 
 if [ "${#arguments}" -eq 0 ] || [ "${#arguments}" -eq 1 ]; then
 	{
 
@@ -1205,7 +1201,7 @@ if [ "${#arguments}" -eq 0 ] || [ "${#arguments}" -eq 1 ]; then
 	}
 
 
-# '-r', '-c' usw.
+# '-r', '-c' etc.
 elif [ "${#arguments}" -eq 2 ]; then
 	{
 		if [ "${arguments[$1]}" == "-h" ] || [ "${arguments[$1]}" == "--help" ]; then
@@ -1233,7 +1229,7 @@ elif [ "${#arguments}" -eq 2 ]; then
 		fi
 	}
 
-# längere Schalter '-rs', '-ms' usw.
+# switches with two chars like '-rs', '-ms' etc.
 elif [ "${#arguments}" -gt 2 ]; then
 	{
 		# prüft, ob der Schalter existiert und ob der User Ordnernamen angegeben hat
