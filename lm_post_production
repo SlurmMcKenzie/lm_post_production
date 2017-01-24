@@ -526,6 +526,10 @@ infobox=$(grep -c '^@IT:.*Info' ${article})
 ## Module: FILL OUT HEADER LINE IN LETTERS TO THE EDITOR ##
 function mod_prepare_ed_letter {
 
+cd images
+cp /opt/lnm/bin/Visual_Leserbriefe.png .
+cd ..
+
 stdvorspann="Haben Sie Anregungen, Statements oder Kommentare? Dann schreiben Sie an [redaktion@linux-magazin.de]. Die Redaktion behält es sich vor, die Zuschriften und Leserbriefe zu kürzen. Sie veröffentlicht alle Beiträge mit Namen, sofern der Autor nicht ausdrücklich Anonymität wünscht."
 
 leserbriefe=$(grep -e '@SW:*Leserbriefe' ${article})
