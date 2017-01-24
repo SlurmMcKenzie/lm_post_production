@@ -21,6 +21,7 @@ backup="../../backup"
 tempfolder="temp"
 editor=/usr/bin/gedit
 browser=/usr/bin/firefox
+leserbriefe_titlepic="@BA:images/Visual_Leserbriefe.png"
 
 # Magazine Issue
 issue_year=$(pwd | grep -o "[2][0][0-9][0-9]")
@@ -525,13 +526,25 @@ infobox=$(grep -c '^@IT:.*Info' ${article})
 ## Module: FILL OUT HEADER LINE IN LETTERS TO THE EDITOR ##
 function mod_prepare_ed_letter {
 
+stdvorspann="Haben Sie Anregungen, Statements oder Kommentare? Dann schreiben Sie an [redaktion@linux-magazin.de]. Die Redaktion behält es sich vor, die Zuschriften und Leserbriefe zu kürzen. Sie veröffentlicht alle Beiträge mit Namen, sofern der Autor nicht ausdrücklich Anonymität wünscht."
+
 leserbriefe=$(grep -e '@SW:*Leserbriefe' ${article})
 dachzeile=$(grep -e '@D: *$' ${article})
+vorspann=$(grep -e '@V: *$' ${article})
 
-if [ "${leserbriefe}" ] && [ "${dachzeile}" ]; then
+if [ "${leserbriefe}" ] && [ "${dachzeile}" ] && [ "${vorspann}" ]; then
 
     sed -i 's/@D:/@D:Auf den Punkt gebracht/g' ${article}
     sed -i 's/@T:/@T:Leserbriefe/g' ${article}
+    # insert blank line after titel
+    sed -i '/@T:/G' ${article}
+    # get line number @T:
+    title_lnnr=$(grep -n "@T:" ${article} | cut -d ":" -f 1)
+    insert_ttl_pic=$((${title_lnnr}+1))
+    # put titel pic in line after title
+    sed -i ''"${insert_ttl_pic}"'i'"${leserbriefe_titlepic}"'' ${article}
+    sed -i 's/@V:/@V:'"${stdvorspann}"'/g' ${article}
+
 fi
 }
 
