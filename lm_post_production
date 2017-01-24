@@ -65,7 +65,7 @@ fi
 function convert_to_utf8 {
 
 if [ -e article.txt ]; then
-    # Try to make 'article.txt' executable, to address 
+    # Try to make 'article.txt' executable, to address
     # https://github.com/SlurmMcKenzie/lm_post_production/issues/19#issue-196916519
     chmod 755 ${article} &&
     wait
@@ -108,7 +108,7 @@ function usage {
 
     echo -e "${bold}SYNOPSIS${normal}"
     echo -e "\tlm_post_production <Option> [<Folder1>] [<Folder2>]\n"
-    
+
     echo -e "${bold}OPTIONEN ALLE DATEIEN${normal}
     \t-h | --help\t\tAusführliche  Hilfedatei
     \t-c | --check\t\tPrüfen, ob alle 'article.txt' korrekt aus Indesign exportiert wurden
@@ -118,16 +118,16 @@ function usage {
 
 	echo -e "${bold}OPTIONEN FÜR EINZELNE DATEIEN${normal}
     \t-rs | --repair_some_articles\t\tEine Auswahl an 'article.txt'-Dateien reparieren
-    \t-ms | --make_some_listings\t\tListings einer Auswahl von Artikeln aufbereiten 
+    \t-ms | --make_some_listings\t\tListings einer Auswahl von Artikeln aufbereiten
     \t-us | --upload_some_articles\t\tEine Auswahl von XML-Dateien für den Upload vorbereiten\n"
-    
+
     echo -e "${bold}BEISPIELE${normal}"
     echo -e "\tAlle Dateien reparieren: 	\t\tlm_post_production -r"
     echo -e "\tAusgewählte Dateien reparieren: 	\tlm_post_production -rs 003-003-editorial 006-008-news"
     echo -e "\tEinige Dateien hochladen: 	\t\tlm_post_production -us [OHNE OPTIONEN]\n"
-	
+
     echo -e "${bold}KURZBESCHREIBUNG${normal}"
-    echo -e "\tLege einen eigenen Unterordner im Verzeichnis '1_export' an. Verschiebe die 
+    echo -e "\tLege einen eigenen Unterordner im Verzeichnis '1_export' an. Verschiebe die
     \tArtikel-Ordner dorthin und wechsele auf der Kommandozeile in diesen Ordner.
     \tRufe das Skript mit seinen Optionen auf, um möglichst saubere '.txt'-Dateien zu erzeugen
     \tund diese dann in HTML- und XML-Dateien für den Artikel-Upload zu verwandeln."
@@ -146,17 +146,17 @@ function get_help {
     echo -e "${bold}SYNOPSIS${normal}"
     echo -e "\tlm_post_production --help | --check | --repair | --make_listings | --upload\n"
     echo -e "\tlm_post_production --repair_some_articles | --make_some_listings | --upload_some_articles\n"
-	
+
     echo -e "${bold}KURZBESCHREIBUNG${normal}"
     echo -e "\tDer Redakteur legt einen eigenen Unterordner im Verzeichnis '1_export' an. Er verschiebt seine
     \tArtikel-Ordner dorthin und wechselt auf der Kommandozeile in diesen Ordner.
     \tEr ruft dort dann das Skript 'lm_post_production' mit seinen Optionen auf (das ist im Pfad und liegt in /opt/lnm/bin).
-    \tMit dem Schalter '-r' erzeugt er möglichst saubere '.txt'-Dateien, die er dann mit '-m' und '-u' 
+    \tMit dem Schalter '-r' erzeugt er möglichst saubere '.txt'-Dateien, die er dann mit '-m' und '-u'
     \tin XML-Dateien für den Artikel-Upload verwandelt.\n"
-    
+
     echo -e "\tWill der Redakteur einzelne oder mehrere Artikel nachträglich durch den Prozess schleusen
-    \tgreift er zu '-rs' und '-ms' und ergänzt ein oder mehrere gewünschten Ordner als Argumente. 
-    \tDiese Ordner landen dann in '2_checked/temp'. Ein (-us) generiert XML-Dateien und repariert 
+    \tgreift er zu '-rs' und '-ms' und ergänzt ein oder mehrere gewünschten Ordner als Argumente.
+    \tDiese Ordner landen dann in '2_checked/temp'. Ein (-us) generiert XML-Dateien und repariert
     \tdie Details der ausgewählten Artikel in '2_checked/temp'.\n"
 
     echo -e "${bold}OPTIONS${normal}"
@@ -166,16 +166,16 @@ function get_help {
 
     echo -e "\t${bold}-c${normal} / --check\n"
 
-    echo -e "\t\tFür alle Artikel in '1_export' checkt ${bold}'-c'${normal}, ob der Indesign-Export 
+    echo -e "\t\tFür alle Artikel in '1_export' checkt ${bold}'-c'${normal}, ob der Indesign-Export
     \t\tfunktioniert hat und eine Datei namens 'article.txt' in jedem Folder liegt. Der User
     \t\tmuss diese Option nur einmal anwenden.\n"
 
     echo -e "\t${bold}-r${normal} / --repair\n"
 
-    echo -e "\t\tDer Reparatur-Schalter ${bold}'-r'${normal} bereinigt die aus dem Indesign exportierten 
-    \t\t'article.txt'-Dateien und konvertiert sie in '.html'-Dateien, die Firefox dann anzeigt. 
+    echo -e "\t\tDer Reparatur-Schalter ${bold}'-r'${normal} bereinigt die aus dem Indesign exportierten
+    \t\t'article.txt'-Dateien und konvertiert sie in '.html'-Dateien, die Firefox dann anzeigt.
     \t\tDas betrifft alle Artikel im anfangs angelegten Unterordner von '1_export'.
-    \t\tDie dabei von 'sf' genannten Fehler landen in einem 'error.log'. 
+    \t\tDie dabei von 'sf' genannten Fehler landen in einem 'error.log'.
     \t\tEntdeckt der Redakteur in der HTML-Ansicht noch Fehler, verbessert er die TXT-Datei.\n"
 
     echo -e "\t${bold}-m${normal} / --make_listings\n"
@@ -185,25 +185,25 @@ function get_help {
     \t\tden kompletten Ordner nach '2_checked'.\n"
 
     echo -e "\t${bold}-u${normal} / --upload\n"
-    
+
     echo -e "\t\tSchließlich generiert die Option ${bold}'-u'${normal} XML-Dateien für den Upload.
-    \t\tFehler in den XML-Dateien, die das Skript nicht automatisch behebt, schreibt es auf die Konsole. 
+    \t\tFehler in den XML-Dateien, die das Skript nicht automatisch behebt, schreibt es auf die Konsole.
     \t\tDer Redakteur muss notfalls nochmal Änderungen an der 'article.txt' des fehlerhaften Artikels vornehmen.
     \t\tTut er das nicht, klappt der Upload auf die Webseite eventuell nicht. Über die Optionen '-rs', '-ms' und '-us'
-    \t\tschleust er einzelne Artikel durch den Prozess.\n" 
+    \t\tschleust er einzelne Artikel durch den Prozess.\n"
 
     echo -e "\t${bold}-rs <Ordner1> <Ordner2>${normal} / --repair_some_articles <Ordner1> <Ordner2>\n"
     echo -e "\t\tRepariert einen oder mehrere Artikel (siehe '-r')\n"
-    
+
     echo -e "\t${bold}-ms <Ordner1> <Ordner2>${normal} / --make_some_listings <Ordner1> <Ordner2>\n"
-    
+
     echo -e "\t\tWandelt die Listings eines oder mehrerer Artikel um und schiebt die zugehörigen.
     \t\tArtikel nach '2_checked' (siehe '-m')\n"
 
     echo -e "\t${bold}-us (Ohne Optionen)${normal} / --upload_some_files (Ohne Optionen)\n"
     echo -e "\t\tKonvertiert eine oder mehrere der bereinigten 'article.txt'-Dateien in XML-Dateien
     \t\tund macht sie bereit für den Upload (siehe '-u', braucht keine Optionen).\n"
-    
+
     echo -e "${bold}AUTHOR${normal}"
     echo -e "\tWritten by Kristian Kißling, 2015 - 2016\n"
 
@@ -410,6 +410,18 @@ secimage=$(grep -e 'DVDgold' ${article} | tail -1)
         # use "|" instead of "/" als delimiter because of path in secimage
         sed -i "s|$secimage||g" ${article}
     fi
+}
+
+
+## Module: RESIZE PICTURES WITH > 3 MBYTE FOR CD/DVD PRODUCTION ##
+function mod_resize_pics {
+
+fatpic=$(find . \( -iname "*.png" -o -iname "*.jpg" \) -size +3M -print)
+
+for fatnum in ${fatpic}; do
+	convert -quiet ${fatnum} -resize 95% ${fatnum}
+	mod_resize_pics
+done
 }
 
 
@@ -875,6 +887,7 @@ function check {
     fi
 }
 
+## CALLS ALL MODULES THAT REPAIR{} NEEDS FOR SINGLE ARTICLE ##
 function repair_article {
 
 echo -e "\nNächster Artikel:"${folder}
@@ -886,6 +899,7 @@ convert_to_utf8
 # this module removes "Heft-DVD" boxes that make no sense online
 mod_warnings
 mod_remove_duplicate
+mod_resize_pics
 mod_insecurity_pic
 mod_remove_ads
 mod_replace_bookbox
@@ -1031,18 +1045,18 @@ arguments=("${@}")
 				for folder in ${arguments[$mloop]}; do
 					if [ -d ${working_dir}/${folder} ]; then
 						cd ${working_dir}/${folder}
-						
+
 						# after everything is fine with article.txt, start extracting the listings
 						mod_extract_listing
 						mod_upload_listings
 						# go back in your subfolder, for example "kki"
 						cd ..
-						
+
 						# check if $target_folder exists and move just finalized $folder in a subfolder
 						mod_move_some_finalized_folder
 					fi
 				done
-			done	
+			done
 			echo -e "Nun kannst Du einen oder mehrere Artikel in XML-Versionen verwandeln. Dazu genügt der Aufruf von 'lm_post_production -us' ohne weitere Argumente."
 			exit 0
 		else
@@ -1086,14 +1100,14 @@ arguments=("${@}")
 
 # check, if location is in "2_checked"
 if [ -d ${target_folder} ]; then
-	
+
 	if  [[ "${#}" -gt 0 ]]; then
-		
+
 		if [ "ls -A ${target_folder}/${tempfolder}" ]; then
 			# walk into '2_checked/temp'
 			cd ${target_folder}/${tempfolder}
 
-			# list all folders in 'temp'		
+			# list all folders in 'temp'
 			ls -d [0-9][0-9][0-9]*
 
 			read -p "Alle aufgelisteten Artikel ins XML-Format verwandeln und dann reparieren? [j/n]" yesyoucan
@@ -1101,7 +1115,7 @@ if [ -d ${target_folder} ]; then
 				j | y)
 					. ${bin_dir}/convert2xml.sh -y ${issue_year} -i ${issue_month} -m LM &&
 					echo "Konvertiere alle TXT-Artikel in XML-Dateien."
-					
+
 					;;
 				*)
 					exit 0
@@ -1174,10 +1188,10 @@ fi
 
 
 ##### Start: Sort arguments ####
-function start 
+function start
 {
 
-# Passes commandline arguments to different functions 
+# Passes commandline arguments to different functions
 
 lock
 
@@ -1187,14 +1201,14 @@ arguments=("${@}")
 # Number of passed arguments:" ${#}
 # Number of chars of passed arguments:" ${#arguments}
 
-# without argument or forgetting it '-' 
+# without argument or forgetting it '-'
 if [ "${#arguments}" -eq 0 ] || [ "${#arguments}" -eq 1 ]; then
 	{
 
 		usage
 		rot=$(tput setaf 1)
-		reset=$(tput sgr0)			
-		echo -e ""			
+		reset=$(tput sgr0)
+		echo -e ""
 		echo -e "-----------------------------------------------"
 		echo -e ${rot}"Die verfügbaren Schalter für 'lm-post-production'."${reset}
 
@@ -1206,10 +1220,10 @@ elif [ "${#arguments}" -eq 2 ]; then
 	{
 		if [ "${arguments[$1]}" == "-h" ] || [ "${arguments[$1]}" == "--help" ]; then
 			get_help
-		
+
 		elif [ "${arguments[$i]}" == "-c" ] || [ "${arguments[$i]}" == "--check" ]; then
 			check
-		
+
 		elif [ "${arguments[$i]}" == "-r" ] || [ "${arguments[$i]}" == "--repair" ]; then
 			repair
 
@@ -1222,8 +1236,8 @@ elif [ "${#arguments}" -eq 2 ]; then
 		else
 			usage
 			rot=$(tput setaf 1)
-			reset=$(tput sgr0)			
-			echo -e ""			
+			reset=$(tput sgr0)
+			echo -e ""
 			echo -e "-----------------------------------------------"
 			echo -e ${rot}"Der Schalter ist unbekannt, bitte starte das Skript erneut..."${reset}
 		fi
@@ -1236,20 +1250,20 @@ elif [ "${#arguments}" -gt 2 ]; then
 		if [ "${arguments[$i]}" == "-rs" ] || [ "${arguments[$i]}" == "--repair_some_articles" ] && [ "${#}" -gt 1 ]; then
 			shift	# schneide erstes Argument '-rs' o.ä. ab
 			repair "${@}"
-	
+
 		elif [ "${arguments[$i]}" == "-ms" ] || [ "${arguments[$i]}" == "--make_some_listings" ] && [ "${#}" -gt 1 ]; then
 			shift
 			make_listings "${@}"
-	
+
 		elif [ "${arguments[$i]}" == "-us" ] || [ "${arguments[$i]}" == "--upload_some_articles" ]; then
 			#shift
 			upload "${@}"
-			
-		else	
+
+		else
 			usage
 			rot=$(tput setaf 1)
 		        reset=$(tput sgr0)
-			echo -e ""		
+			echo -e ""
 			echo -e "-----------------------------------------------"
 			echo -e ${rot}"Dieser Parameter erfordert ein oder mehrere Artikel-Ordnernamen als Argumente."${reset}
 		fi
