@@ -66,11 +66,7 @@ fi
 function convert_to_utf8 {
 
 if [ -e article.txt ]; then
-    # Try to make 'article.txt' executable, to address
-    # https://github.com/SlurmMcKenzie/lm_post_production/issues/19#issue-196916519
-    chmod 755 ${article} &&
-    wait
-    sync
+    
     # Workaround, might be removed, if 'wait' and 'sync' work
     cp ${article} article.txt.copy &&
     mv article.txt.copy ${article} &&
@@ -762,10 +758,10 @@ if [ "$avail" ]; then
     fi
 
     mkdir listings >/dev/null 2>&1
-    chmod a+rw listings &&
+    chmod a+rw listings
     wait
-    ${satzfertig} -nL listings ${article} > /dev/null 2>&1 &&
-
+    ${bin_dir}/${satzfertig} -nL listings ${article} > /dev/null 2>&1
+    wait
     cd listings
     for i in * ; do
         sed -i 's/\(.\{2\}\)//' ${i} &&
