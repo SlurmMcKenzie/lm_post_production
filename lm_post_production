@@ -410,18 +410,6 @@ secimage=$(grep -e 'DVDgold' ${article} | tail -1)
 }
 
 
-## Module: RESIZE PICTURES WITH > 3 MBYTE FOR CD/DVD PRODUCTION ##
-function mod_resize_pics {
-
-fatpic=$(find . \( -iname "*.png" -o -iname "*.jpg" \) -size +3M -print)
-
-for fatnum in ${fatpic}; do
-	convert -quiet ${fatnum} -resize 95% ${fatnum}
-	mod_resize_pics
-done
-}
-
-
 ## Module: CHECK KURZNACHRICHTEN TITLE IN NEWS ##
 function mod_repair_news_box {
 
