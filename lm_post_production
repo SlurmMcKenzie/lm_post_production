@@ -519,6 +519,34 @@ infobox=$(grep -c '^@IT:.*Info' ${article})
 }
 
 
+## Module: REMOVE <C>-TAGS IN SUB-HEADLINES AND HEADER ##
+function mod_remove_ctag {
+
+c_in_header=$(grep -e "@V:.*<C>.*$" ${article})
+c_in_headlines=$(grep -e "@ZT:.*<C>.*$" ${article})
+c_in_group_headlines=$(grep -e "@ZTA:.*<C>.*$" ${article})
+
+	if [ "${c_in_header}" ]; then
+	    # Remove <C>-Tags in Vorspann...
+        header_wo_c=$(echo ${c_in_header} | sed 's|<C>|"|g')
+        sed -i 's/'"${c_in_header}"'/'"${header_wo_c}"'/g' ${article}
+	fi
+
+	if [ "${c_in_headlines}" ]; then
+	    # Remove <C>-Tags in Headlines...
+        headlines_wo_c=$(echo ${c_in_headlines} | sed 's|<C>|"|g')
+        sed -i 's/'"${c_in_headlines}"'/'"${headlines_wo_c}"'/g' ${article}
+    fi
+
+    if [ "${c_in_group_headlines}" ]; then
+	    # Remove <C>-Tags in Grouped Headlines (Bitparade)...
+        group_headlines_wo_c=$(echo ${c_in_group_headlines} | sed 's|<C>|"|g')
+        sed -i 's/'"${c_in_group_headlines}"'/'"${group_headlines_wo_c}"'/g' ${article}
+    fi
+
+}
+
+
 ## Module: FILL OUT HEADER LINE IN LETTERS TO THE EDITOR ##
 function mod_prepare_ed_letter {
 
@@ -987,6 +1015,7 @@ mod_resize_pics
 mod_insecurity_pic
 mod_remove_ads
 mod_replace_bookbox
+mod_remove_ctag
 mod_prepare_ed_letter
 mod_prepare_pics_news_zut
 mod_repair_news_headline
