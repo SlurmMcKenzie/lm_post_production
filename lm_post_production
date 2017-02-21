@@ -859,6 +859,15 @@ delugdvd=$(grep -e '<kicker>In eigener Sache: DELUG-DVD</kicker>' ${article})
 	    sed -i 's/online\ access="restricted"/online\ access="free"/' ${article}
 	    echo "Konfiguriere freien Online-Zugriff auf ${folder}."
 	fi
+
+    if [ "${buecher}" ]; then
+	    # Remove references from Abbildungen
+        sed -i 's/(<ref type="figure" target="f.">\(Abbildung .\)<\/ref>)/\1/' ${article}
+        sed -i 's/(<ref type="figure" target="f..">\(Abbildung ..\)<\/ref>)/\1/' ${article}
+        # Remove references from Tables
+        sed -i 's/(<ref type="table" target="t.">\(Tabelle .\)<\/ref>)/\1/' ${article}
+        sed -i 's/(<ref type="table" target="t..">\(Tabelle ..\)<\/ref>)/\1/' ${article}
+	fi
 }
 
 
@@ -982,6 +991,7 @@ mod_prepare_ed_letter
 mod_prepare_pics_news_zut
 mod_repair_news_headline
 mod_repair_news_box
+mod_sub_headlines
 mod_prepare_edi
 mod_repair_urls
 mod_repair_editor_abbrevation
