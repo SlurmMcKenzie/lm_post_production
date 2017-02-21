@@ -1011,7 +1011,6 @@ convert_to_utf8
 # this module removes "Heft-DVD" boxes that make no sense online
 mod_warnings
 mod_remove_duplicate
-mod_resize_pics
 mod_insecurity_pic
 mod_remove_ads
 mod_replace_bookbox
@@ -1242,7 +1241,7 @@ if [ -d ${target_folder} ]; then
 				if [ -d ${target_folder}/${tempfolder}/${folder} ]; then
 					cd ${target_folder}/${tempfolder}/${folder}
 					mod_repair_xml
-                    mod_resize_img
+                    			mod_resize_img
 					cd ..
 					if [ -d ${target_folder}/${folder} ]; then
 						rm -fR ${target_folder}/${folder}
