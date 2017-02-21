@@ -11,6 +11,7 @@ article_html=article.html
 satzfertig=sf
 iconv=/usr/bin/iconv
 skriptuser=$(whoami)
+convert=/usr/bin/convert
 
 # Path Variables
 working_dir=$(pwd)
@@ -66,7 +67,7 @@ fi
 function convert_to_utf8 {
 
 if [ -e article.txt ]; then
-    
+
     # Workaround, might be removed, if 'wait' and 'sync' work
     cp ${article} article.txt.copy &&
     mv article.txt.copy ${article} &&
@@ -393,7 +394,7 @@ function mod_remove_boxes {
 }
 
 
-##  Module: REMOVE DUPLICATE TITLE PICTURES ##
+## Module: REMOVE DUPLICATE TITLE PICTURES ##
 function mod_remove_duplicate {
 
 #   removes duplicate title pics in "sw_einf"
@@ -850,6 +851,68 @@ delugdvd=$(grep -e '<kicker>In eigener Sache: DELUG-DVD</kicker>' ${article})
 }
 
 
+## Module: RESIZE IMAGES BIGGER THAN 3 MB
+function mod_resize_img {
+
+# find big images (PNG and JPG)
+bigpics=$(find . \( -iname "*.png" -o -iname "*.jpg" \) -size +3M -print)
+number_of_resize_runs=0
+
+# scale target for a single run
+percentage_target=95
+
+# resize percentage per run
+percentage_steps=$((100-${percentage_target}))
+
+# factor that is needed to get pic under 3 MB
+resizefactor=0
+
+# big sized picture in BACKUP
+original_bigpic=0
+factor_per_image=0
+
+while [ "${bigpics}" ]; do
+
+	for single_big_pic in ${bigpics}; do
+		if [ ! -e ${single_big_pic}_BACKUP ]; then
+			cp ${single_big_pic} ${single_big_pic}_BACKUP
+		fi
+		${convert} ${single_big_pic} -resize ${percentage_target}% ${single_big_pic}
+		number_of_resize_runs=$(ls ${single_big_pic}* | grep -o "[0-9]\+$")
+		if [ ${number_of_resize_runs} ]; then
+			number_of_resize_runs=$((${number_of_resize_runs}+1))
+			rm ${single_big_pic}__*
+			cp ${single_big_pic} ${single_big_pic}__${number_of_resize_runs}
+		else
+			number_of_resize_runs=1
+			cp ${single_big_pic} ${single_big_pic}__${number_of_resize_runs}
+		fi
+	done
+
+	bigpics=$(find . \( -iname "*.png" -o -iname "*.jpg" \) -size +3M -print)
+
+	if [ ! "${single_big_pic}" ]; then
+		break
+	fi
+done
+
+smallpics=$(find . -regextype posix-extended -regex '.*__[0-9]+$')
+
+for single_smallpic in ${smallpics}; do
+	factor_per_image=$(echo ${single_smallpic} | grep -o "[0-9]\+$")
+	resizefactor=$((100-${factor_per_image}*${percentage_steps}))
+	original_bigpic=$(echo ${single_smallpic} | sed 's/__.*$/_BACKUP/g')
+	find_name_of_pic=$(echo ${single_smallpic} | sed 's/__.*$//g')
+	${convert} ${original_bigpic} -resize ${resizefactor}% ${find_name_of_pic}
+	echo "Reduziere Grafik in" ${folder} "auf" ${resizefactor} "Prozent ihrer Groesse."
+	rm ${original_bigpic} ${single_smallpic}
+done
+
+echo "Keine Bilder (mehr) zum Verkleinern."
+
+}
+
+
 #####   Main: "-c" - check for 'article.txt' #####
 function check {
 
@@ -1111,7 +1174,7 @@ if [ -d ${target_folder} ]; then
 			# list all folders in 'temp'
 			ls -d [0-9][0-9][0-9]*
 
-			read -p "Alle aufgelisteten Artikel ins XML-Format verwandeln und dann reparieren? [j/n]" yesyoucan
+			read -p "Alle aufgelisteten Artikel ins XML-Format verwandeln, dann reparieren und alle Bilder verkleinern? [j/n]" yesyoucan
 				case ${yesyoucan} in
 				j | y)
 					. ${bin_dir}/convert2xml.sh -y ${issue_year} -i ${issue_month} -m LM &&
@@ -1129,6 +1192,7 @@ if [ -d ${target_folder} ]; then
 				if [ -d ${target_folder}/${tempfolder}/${folder} ]; then
 					cd ${target_folder}/${tempfolder}/${folder}
 					mod_repair_xml
+                    mod_resize_img
 					cd ..
 					if [ -d ${target_folder}/${folder} ]; then
 						rm -fR ${target_folder}/${folder}
