@@ -956,7 +956,6 @@ for single_smallpic in ${smallpics}; do
 	rm ${original_bigpic} ${single_smallpic}
 done
 
-echo "Keine Bilder (mehr) zum Verkleinern."
 
 }
 
@@ -1223,11 +1222,11 @@ if [ -d ${target_folder} ]; then
 			# list all folders in 'temp'
 			ls -d [0-9][0-9][0-9]*
 
-			read -p "Alle aufgelisteten Artikel ins XML-Format verwandeln, dann reparieren und alle Bilder verkleinern? [j/n]" yesyoucan
+			read -p "Alle aufgelisteten Artikel ins XML-Format verwandeln, reparieren und alle Bilder verkleinern? [j/n]" yesyoucan
 				case ${yesyoucan} in
 				j | y)
 					. ${bin_dir}/convert2xml.sh -y ${issue_year} -i ${issue_month} -m LM &&
-					echo "Konvertiere alle TXT-Artikel in XML-Dateien."
+					echo "Konvertiere alle TXT-Artikel in XML-Dateien, verkleinere Bilder."
 
 					;;
 				*)
@@ -1267,11 +1266,11 @@ if [ -d ${target_folder} ]; then
 			# show all folders an start conversion
 			ls -d [0-9][0-9][0-9]*
 
-			read -p "Alle aufgelisteten Artikel ins XML-Format verwandeln und dann reparieren? [j/n]" yesyoucan
+			read -p "Alle aufgelisteten Artikel ins XML-Format verwandeln, reparieren und alle Bilder verkleinern? [j/n]" yesyoucan
 				case ${yesyoucan} in
 				j | y)
 					. ${bin_dir}/convert2xml.sh -y ${issue_year} -i ${issue_month} -m LM &&
-					echo "Konvertiere alle TXT-Artikel in XML-Dateien."
+					echo "Konvertiere alle TXT-Artikel in XML-Dateien und verkleinere Bilder."
 					;;
 				*)
 					exit 0
@@ -1284,6 +1283,7 @@ if [ -d ${target_folder} ]; then
 				if [ -d ${target_folder}/${folder} ]; then
 					cd ${target_folder}/${folder}
 					mod_repair_xml
+					mod_resize_img
 					cd ..
 				fi
 			done
