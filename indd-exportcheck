@@ -27,6 +27,8 @@ bold=`tput bold`
     echo -e "\t\tDiese Hilfe anzeigen.\n"
     echo -e "\t-c / --check"
     echo -e "\t\tPruefen, ob die 'article.txt' exportiert wurden\n"
+    echo -e "\t-l / --length"
+    echo -e "\t\tPruefen die Artikellaengen [EXPERIMENTELL!!]\n"
 
     echo -e "${bold}AUTHOR${normal}"
     echo -e "\tWritten by Kristian Kißling, 2015 - 2016\n"
@@ -40,61 +42,27 @@ bold=`tput bold`
     \tThere is NO WARRANTY, to the extent permitted by law."
 }
 
-## CONVERT ARTICLE.TXT TO UTF-8 OTHERWISE SCRIPT BREAKS ##
-function convert_to_utf8 {
-
-if [ -e article.txt ]; then
-
-    # Workaround, might be removed, if 'wait' and 'sync' work
-    cp ${article} article.txt.copy &&
-    mv article.txt.copy ${article} &&
-    ${iconv} -f ISO-8859-15 -t UTF-8 ${article} -o article.txt.tmp
-    wait
-    mv article.txt.tmp article.txt
-    wait
-else
-	echo -e "Die Datei 'article.txt' scheint nicht zu existieren."
-	exit 0
-fi
-}
-
-
-## CONVERT ARTICLE.TXT BACK TO ISO-8859-15 ##
-function convert_to_iso8859_15 {
-
-if [ -e article.txt ]; then
-    chmod 755 ${article} &&
-    wait
-    ${iconv} -f UTF-8 -t ISO-8859-15 ${article} -o article.txt.tmp
-    wait
-    mv article.txt.tmp article.txt
-    wait
-else
-    echo -e "Die Datei 'article.txt' scheint nicht zu existieren."
-	exit 0
-fi
-}
-
-
-# check, if articles end with <I>author<I> or <I>IT:Infos<I>, else, ask user for action
 function mod_check_length {
 
-check_footnote_start=$(grep '^\@IT: *Infos' ${article})
-articleend=$(tail -2 ${article} | grep '<I>.*<I>')
+cd ${working_dir}
+for folder in $(ls -d [[:digit:]]*); do
+            if [ -d ${working_dir}/${folder} ]; then
+				# and dive into it
+                cd ${working_dir}/${folder}
+                    blocktitel=$(grep '^@R: *U1' ${article} 2>&1 &)
+                    blockinhalt=$(grep '^@R: *Inhalt' ${article} 2>&1 &)
+                    blockmarkt=$(grep '^@SW: *Profimarkt' ${article} 2>&1 &)
+                    blockinser=$(grep '^@SW: *Inserenten' ${article} 2>&1 &)
+                    blockvorschau=$(grep '^@SW: *Vorschau [0-9]' ${article} 2>&1 &)
 
-    if ! [ "${check_footnote_start}" ] && ! [ "${articleend}" ]; then
-        read -p "Womöglich fehlt dem Artikel das Ende. Autor und letzte fünf Zeilen anzeigen? [j/n]" showend
-        case ${showend} in
-            j | y)
-                autor=$(grep '@A:' ${article})
-                echo "Autor:"${autor:3}
-                tail -n1 ${article}
-                ;;
-            *)
-                exit 0;
-                ;;
-        esac
-    fi
+                    check_footnote_start=$(grep '^@IT: *Infos' ${article} 2>&1 &)
+                    articleend=$(tail -5 ${article} 2>&1 | grep '<I>.*<I>' 2>&1 &)
+                    if ! [ "${check_footnote_start}" ] && ! [ "${articleend}" ] && ! [ "${blocktitel}" ] && ! [ "${blockinhalt}" ] && ! [ "${blockmarkt}" ] && ! [ "${blockinser}" ] && ! [ "${blockvorschau}" ]; then
+                        #read -p "Womöglich fehlt in "${folder}" das Ende. Autor und letzte fünf Zeilen anzeigen? [j/n]" showend
+                        echo "Womöglich fehlt in "${folder}" das Ende."
+                    fi
+            fi
+done
 }
 
 
@@ -105,7 +73,6 @@ function check {
             if [ -d ${working_dir}/${folder} ]; then
 				# and dive into it
                 cd ${working_dir}/${folder}
-                mod_check_length
 				occurence=$(grep '^@#: *ID: *[0-9]' ${article} 2>&1 &)
 
 				if [[ -f ${article} ]]; then
@@ -159,9 +126,9 @@ function start {
         get_help
     elif [ "${1}" == "-c" ] || [ "${1}" == "--check" ]; then
 		clear
-        #convert_to_utf8
         check
-        #convert_to_iso8859_15
+    elif [ "${1}" == "-l" ] || [ "${1}" == "--length" ]; then
+        clear
         mod_check_length
     fi
 }
