@@ -931,9 +931,11 @@ while [ "${bigpics}" ]; do
 			number_of_resize_runs=$((${number_of_resize_runs}+1))
 			rm ${single_big_pic}__*
 			cp ${single_big_pic} ${single_big_pic}__${number_of_resize_runs}
+            head -c ${number_of_resize_runs} < /dev/zero | tr '\0' '\56'
 		else
 			number_of_resize_runs=1
 			cp ${single_big_pic} ${single_big_pic}__${number_of_resize_runs}
+            head -c ${number_of_resize_runs} < /dev/zero | tr '\0' '\56'
 		fi
 	done
 
@@ -945,6 +947,7 @@ while [ "${bigpics}" ]; do
 done
 
 smallpics=$(find . -regextype posix-extended -regex '.*__[0-9]+$')
+echo -e "\n"
 
 for single_smallpic in ${smallpics}; do
 	factor_per_image=$(echo ${single_smallpic} | grep -o "[0-9]\+$")
