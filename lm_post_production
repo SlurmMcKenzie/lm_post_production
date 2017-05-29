@@ -929,7 +929,7 @@ while [ "${bigpics}" ]; do
 		number_of_resize_runs=$(ls ${single_big_pic}* | grep -o "[0-9]\+$")
 		if [ ${number_of_resize_runs} ]; then
 			number_of_resize_runs=$((${number_of_resize_runs}+1))
-			rm ${single_big_pic}__*
+			rm -f ${single_big_pic}__*
 			cp ${single_big_pic} ${single_big_pic}__${number_of_resize_runs}
             head -c ${number_of_resize_runs} < /dev/zero | tr '\0' '\56'
 		else
@@ -954,9 +954,13 @@ for single_smallpic in ${smallpics}; do
 	resizefactor=$((100-${factor_per_image}*${percentage_steps}))
 	original_bigpic=$(echo ${single_smallpic} | sed 's/__.*$/_BACKUP/g')
 	find_name_of_pic=$(echo ${single_smallpic} | sed 's/__.*$//g')
-	${convert} ${original_bigpic} -resize ${resizefactor}% ${find_name_of_pic}
-	echo "Reduziere Grafik in" ${folder} "auf" ${resizefactor} "Prozent ihrer Groesse."
-	rm ${original_bigpic} ${single_smallpic}
+	if [[ "${resizefactor}" -gt 0 ]]; then
+		${convert} ${original_bigpic} -resize ${resizefactor}% ${find_name_of_pic}
+		echo "Reduziere Grafik in" ${folder} "auf" ${resizefactor} "Prozent ihrer Groesse."
+	else
+		echo "Reduziere Grafik in" ${folder} "auf Maximalgroesse."
+	fi
+	rm -f ${original_bigpic} ${single_smallpic}
 done
 
 
