@@ -322,16 +322,14 @@ function mod_insecurity_pic {
 #insec=$(grep -e '@SW: *Insecurity' ${article})
 vis=$(grep -n '@BA:.*Visual_insecurity' ${article} | cut -d ":" -f 1)
 titlepic=$(grep -e '@BI:.*123[rR][fF].*' ${article})
-artefakt=$(grep -n '@BI:.*123[rR][fF].*' ${article} | cut -d ":" -f 1 | tail -n -1)
 
     if [[ "${vis}" ]] && [[ "${titlepic}" ]]; then
 	sed -i ''"${vis}"'c'"${titlepic}" ${article}
 	artefakt=$(grep -n '@BI:.*123[rR][fF].*' ${article} | cut -d ":" -f 1 | tail -n -1)
 	sed -i ''"${artefakt}"'d' ${article}
-	# After after replacing standard picture with titel picture and deleting duplicates, change title picture to @BA:
+	# change @BI: to @BA:
 	sed -i '0,/@BI:/s//@BA:/' ${article}
     fi
-
 }
 
 ## Module: DELETE NEEDLESS ADS AND COVER PICS ##
@@ -514,9 +512,6 @@ function mod_replace_bookbox {
 buecher=$(grep -e '@SW:*B.cher' ${article})
 infobox=$(grep -c '^@IT:.*Info' ${article})
 
-# Replace @BI: for title pic (fist occurence) with @BA:
-sed -i '0,/@BI:/s//@BA:/' ${article}
-
     if [ "${buecher}" ] && [ "${infobox}" == 2 ]; then
 
         sed -i '0,/IT\:.*fo$/s//KT:Info 1/; /IT\:.*fo$/s//KT:Info 2/' ${article}
@@ -662,9 +657,8 @@ if [ "${tooltipps}" ]; then
     sed -i '/@BA: *.*$/d' ${article}
     # replace @KT: with @ZKT:
     sed -i 's/@KT:/@ZKT:/g' ${article}
-    # replace first BI-Tag through BA-Tags
+    # replace all BI-Tags except one
     #sed -i '/Visual_Tooltipps/!s/@BI:/@C:/g' ${article}
-    sed -i '0,/@BI:/s//@BA:/' ${article}
 fi
 }
 
