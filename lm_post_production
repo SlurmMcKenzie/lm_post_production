@@ -508,15 +508,22 @@ edi=$(grep -e '@R: *Editorial' ${article})
 
 ## Module: REPLACE BOXES IN BOOK ARTICLE ##
 function mod_replace_bookbox {
-
-buecher=$(grep -e '@SW:*B.cher' ${article})
+set -x
+books=$(grep -e '@SW:B.*cher' ${article})
 infobox=$(grep -c '^@IT:.*Info' ${article})
+new_infobox=$(grep -c '^@B:.*Info' ${article})
 
-    if [ "${buecher}" ] && [ "${infobox}" == 2 ]; then
-
+    if [ "${books}" ] && [ "${infobox}" == 2 ]; then
+	sed -i '0,/@BI:/s//@BA:/' ${article}
         sed -i '0,/IT\:.*fo$/s//KT:Info 1/; /IT\:.*fo$/s//KT:Info 2/' ${article}
         sed -i 's/@IL:/@KL:/g' ${article}
+    
+    elif [ "${books}" ] && [ "${new_infobox}" == 2 ]; then
+	sed -i '0,/@BI:/s//@BA:/' ${article}
+        sed -i '0,/B\:.*fo$/s//KT:Info 1/; /B\:.*fo$/s//KT:Info 2/' ${article}
+        sed -i 's/@B:/@KL:/g' ${article}
     fi
+set +x
 }
 
 
