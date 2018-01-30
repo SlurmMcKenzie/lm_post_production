@@ -231,6 +231,15 @@ warning_a4=$(grep -o '^@[A-Z]*:' ${article} | grep -B1 '@KE' | grep -n '@TT:')
         echo -e ${rot}"Es scheinen Bilder und Tabellen im Kasten in " ${folder} " zu stecken. Bitte manuell korrigieren." ${reset}
     fi
 
+# Find orpaned Copyright notices and warn
+cpy=$(grep -e '@#:Unhandled group' ${article})
+
+	if [ "${cpy}" ]; then
+		rot=$(tput setaf 1)
+		reset=$(tput sgr0)
+		echo -e ${rot}"Warnung: Copyright-Hinweise könnten bei Bildern in " ${folder}" fehlen."${reset}
+	fi
+
 # warns, that pictures and news items are probably paired wrong
 news=$(grep -e '@SW: *News' ${article})
 zut=$(grep -e '@SW: *Zahlen & Trends' ${article})
@@ -240,6 +249,7 @@ zut=$(grep -e '@SW: *Zahlen & Trends' ${article})
 		reset=$(tput sgr0)
 		echo -e ${rot}"Bitte prüfen, ob Meldungen und Bilder zueinander passen in " ${folder}" und manuell korrigieren."${reset}
 	fi
+
 
 # warns of wrong picture order or missing pics
 pic_order=$(grep -o "^@B: *Abbildung [0-9]*" ${article} | cut -d ":" -f2)
