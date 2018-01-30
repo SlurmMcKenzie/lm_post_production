@@ -508,7 +508,6 @@ edi=$(grep -e '@R: *Editorial' ${article})
 
 ## Module: REPLACE BOXES IN BOOK ARTICLE ##
 function mod_replace_bookbox {
-set -x
 books=$(grep -e '@SW:B.*cher' ${article})
 infobox=$(grep -c '^@IT:.*Info' ${article})
 new_infobox=$(grep -c '^@B:.*Info' ${article})
@@ -517,30 +516,15 @@ new_infobox=$(grep -c '^@B:.*Info' ${article})
 	sed -i '0,/@BI:/s//@BA:/' ${article}
         sed -i '0,/IT\:.*fo$/s//KT:Info 1/; /IT\:.*fo$/s//KT:Info 2/' ${article}
         sed -i 's/@IL:/@KL:/g' ${article}
-	# make empty line after @KT
-	sed -i '/@KT:/G' ${article}
-
-
-#	if [[ "${upper_img}" ]] && [ "${lower_img}" -gt "${upper_img}" ]; then
-#            upper=$(grep "@BA: *.*" ${article})
-#            lower=$(grep "@BI: *.*" ${article})
-#            lower_bu=$(grep "@B: *.*" ${article})
-
-#            sed -i ''"${upper_img}"'c'"${lower}" ${article}
-#            sed -i ''"${lower_img}"'c'"${upper}" ${article}
-#            sed -i ''"${upper_plus_one}"'c'"${lower_bu}" ${article}
-#            artefakt=$(grep -n "@BI" ${article} | cut -d ":" -f 1 | tail -n -1)
-#            sed -i ''"${artefakt}"'d' ${article}
-
-#            sed -i 's|@BA|@BI|' ${article}
-#            sed -i '/unterschrift/!s/@BI/@BA/g' ${article}
-#        fi
     
     elif [ "${books}" ] && [ "${new_infobox}" == 2 ]; then
 	sed -i '0,/@BI:/s//@BA:/' ${article}
         sed -i '0,/B\:.*fo$/s//KT:Info 1/; /B\:.*fo$/s//KT:Info 2/' ${article}
         sed -i 's/@B:/@KL:/g' ${article}
 	sed -i '/@KT:/G' ${article}
+
+	# swap positions of Box Titles and Pictures
+	# Picture 1
 	# find line number of empty line after KT:Info1
 	emptyln_one=$(grep -n "@KT:Info 1" ${article} | cut -d ":" -f 1)
 	infopic_one=$(grep -m 1 "@BI: *.*" ${article})
@@ -548,6 +532,9 @@ new_infobox=$(grep -c '^@B:.*Info' ${article})
 	emptyln_one_minus=$((${emptyln_one}-2))
 	sed -i ''"${emptyln_one_plus}"'c'"${infopic_one}" ${article}
 	sed -i ''"${emptyln_one_minus}"'d' ${article}
+
+	# swap positions of Box Titles and Pictures
+	# Picture 2
 	# find line number of empty line after KT:Info2
 	emptyln_two=$(grep -n "@KT:Info 2" ${article} | cut -d ":" -f 1)
 	infopic_two=$(grep -m 2 "@BI: *.*" ${article} | tail -n -1)
@@ -557,7 +544,6 @@ new_infobox=$(grep -c '^@B:.*Info' ${article})
 	sed -i ''"${emptyln_two_minus}"'d' ${article}
 	
     fi
-set +x
 }
 
 
