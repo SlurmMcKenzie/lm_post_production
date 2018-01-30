@@ -650,22 +650,14 @@ tooltipps=$(grep -e '@T: *Tooltipps' ${article})
 if [ "${tooltipps}" ]; then
     trailer=$(grep -e '@V: *$' ${article})
     author=$(grep -e '@A: *$' ${article})
+    # DEPRECATED after
+    # https://github.com/SlurmMcKenzie/lm_post_production/commit/9a6dc7ceeff1eb55e69afc4eec8d9ac52025a55b
+    # find out line number of alone standing pic
+    # single_pic=$(grep -n -A2 '@BI' ${article} | grep '@KT' | tail -n1 | cut -d "-" -f1)
+    
+    # Make first picture a titel picture by replacing @BI with @BA
+    sed -i '0,/@BI:/s//@BA:/' ${article}
 
-    #find out line number of alone standing pic
-	single_pic=$(grep -n -A2 '@BI' ${article} | grep '@KT' | tail -n1 | cut -d "-" -f1)
-        if [ "${single_pic}" ]; then
-            single_pic_position=$((${single_pic}-2))
-
-            #find out box with lacking pic
-            box=$(grep -n -B3 '@KE' ${article} | grep -n '@KL' | cut -d ":" -f2 | grep -o '[0-9]*')
-            box_insert=$((${box}+2))
-
-            # insert pic in box
-            pic=$(sed -n "${single_pic_position}"'p' ${article})
-            sed -i ''"${box_insert}"'i'"${pic}"'' ${article}
-            single_pic_position=$((${single_pic_position}+1))
-            sed -i "${single_pic_position}"'d' ${article}
-        fi
     if [ "${trailer}" ]; then
         for i in $(grep -n '^@KT: *.*$' ${article} | cut -d ":" -f 1); do
             # Show text following @KT:
@@ -681,11 +673,12 @@ if [ "${tooltipps}" ]; then
         sed -i 's/\@A: *.*$/\@A:Uwe Vollbracht/g' ${article}
     fi
     # remove wrong tagged @BA-picture
-    sed -i '/@BA: *.*$/d' ${article}
+    # DEPRECATED after
+    # https://github.com/SlurmMcKenzie/lm_post_production/commit/9a6dc7ceeff1eb55e69afc4eec8d9ac52025a55b
+    # sed -i '/@BA: *.*$/d' ${article}
+
     # replace @KT: with @ZKT:
     sed -i 's/@KT:/@ZKT:/g' ${article}
-    # replace all BI-Tags except one
-    #sed -i '/Visual_Tooltipps/!s/@BI:/@C:/g' ${article}
 fi
 }
 
