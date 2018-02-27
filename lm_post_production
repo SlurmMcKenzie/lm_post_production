@@ -231,15 +231,6 @@ warning_a4=$(grep -o '^@[A-Z]*:' ${article} | grep -B1 '@KE' | grep -n '@TT:')
         echo -e ${rot}"Es scheinen Bilder und Tabellen im Kasten in " ${folder} " zu stecken. Bitte manuell korrigieren." ${reset}
     fi
 
-# Find orpaned Copyright notices and warn
-cpy=$(grep -e '@#:Unhandled group' ${article})
-
-	if [ "${cpy}" ]; then
-		rot=$(tput setaf 1)
-		reset=$(tput sgr0)
-		echo -e ${rot}"Warnung: Copyright-Hinweise könnten bei Bildern in " ${folder}" fehlen."${reset}
-	fi
-
 # warns, that pictures and news items are probably paired wrong
 news=$(grep -e '@SW: *News' ${article})
 zut=$(grep -e '@SW: *Zahlen & Trends' ${article})
@@ -249,7 +240,6 @@ zut=$(grep -e '@SW: *Zahlen & Trends' ${article})
 		reset=$(tput sgr0)
 		echo -e ${rot}"Bitte prüfen, ob Meldungen und Bilder zueinander passen in " ${folder}" und manuell korrigieren."${reset}
 	fi
-
 
 # warns of wrong picture order or missing pics
 pic_order=$(grep -o "^@B: *Abbildung [0-9]*" ${article} | cut -d ":" -f2)
@@ -303,6 +293,23 @@ if [ "${and_in_intro}" ]; then
 fi
 }
 
+## Module: ADAPT TO NEW INTRODUCED KALEIDOSKOP FORMAT
+function mod_kaleidoskop {
+
+kaleidoskop=$(grep -e '@SW: *Kaleidoskop' ${article})
+
+if [ "${kaleidoskop}" ] ; then
+	# Uncomment 'Linux-Magazin:' questions and make it all bold with <B>
+	sed -i 's/^@#: *<I> *Linux-Magazin: *<I>\( .*$\)/@L:<B>Linux-Magazin:\1<B>/' ${article}
+	
+	# Only make <B>Linux-Magazin:<B> bold (not in use)	
+	# sed -i 's/^@#: *<I> *Linux-Magazin: *<I>/@L:<B>Linux-Magazin:<B>/' ${article}
+
+	# Replace <I> with <B> in answers
+	sed -i 's/\@L:<I>\( *.*\)<I>/\@L:<B>\1<B>/' ${article}
+fi
+}
+
 
 ##  Module: REMOVE ALL COMMENTS EXCEPT THE ONE WITH ID ##
 function mod_repair_comments {
@@ -312,6 +319,7 @@ function mod_repair_comments {
 # '/Delete this/ {/Apart from that/! d}'
 occurence=$(grep -c '^@#' ${article})
 occurence_id=$(grep -c '^@#: *ID: *[0-9]' ${article})
+
 
     if [ "${occurence}" -gt "1" ]; then
         sed -i '/^@#.*$/ {/^@#:ID.*$/! d}' ${article}
@@ -518,41 +526,14 @@ edi=$(grep -e '@R: *Editorial' ${article})
 
 ## Module: REPLACE BOXES IN BOOK ARTICLE ##
 function mod_replace_bookbox {
-books=$(grep -e '@SW:B.*cher' ${article})
-infobox=$(grep -c '^@IT:.*Info' ${article})
-new_infobox=$(grep -c '^@B:.*Info' ${article})
 
-    if [ "${books}" ] && [ "${infobox}" == 2 ]; then
-	sed -i '0,/@BI:/s//@BA:/' ${article}
+buecher=$(grep -e '@SW:*B.cher' ${article})
+infobox=$(grep -c '^@IT:.*Info' ${article})
+
+    if [ "${buecher}" ] && [ "${infobox}" == 2 ]; then
+
         sed -i '0,/IT\:.*fo$/s//KT:Info 1/; /IT\:.*fo$/s//KT:Info 2/' ${article}
         sed -i 's/@IL:/@KL:/g' ${article}
-    
-    elif [ "${books}" ] && [ "${new_infobox}" == 2 ]; then
-	sed -i '0,/@BI:/s//@BA:/' ${article}
-        sed -i '0,/B\:.*fo$/s//KT:Info 1/; /B\:.*fo$/s//KT:Info 2/' ${article}
-        sed -i 's/@B:/@KL:/g' ${article}
-	sed -i '/@KT:/G' ${article}
-
-	# swap positions of Box Titles and Pictures
-	# Picture 1
-	# find line number of empty line after KT:Info1
-	emptyln_one=$(grep -n "@KT:Info 1" ${article} | cut -d ":" -f 1)
-	infopic_one=$(grep -m 1 "@BI: *.*" ${article})
-	emptyln_one_plus=$((${emptyln_one}+1))
-	emptyln_one_minus=$((${emptyln_one}-2))
-	sed -i ''"${emptyln_one_plus}"'c'"${infopic_one}" ${article}
-	sed -i ''"${emptyln_one_minus}"'d' ${article}
-
-	# swap positions of Box Titles and Pictures
-	# Picture 2
-	# find line number of empty line after KT:Info2
-	emptyln_two=$(grep -n "@KT:Info 2" ${article} | cut -d ":" -f 1)
-	infopic_two=$(grep -m 2 "@BI: *.*" ${article} | tail -n -1)
-	emptyln_two_plus=$((${emptyln_two}+1))
-	emptyln_two_minus=$((${emptyln_two}-2))
-	sed -i ''"${emptyln_two_plus}"'c'"${infopic_two}" ${article}
-	sed -i ''"${emptyln_two_minus}"'d' ${article}
-	
     fi
 }
 
@@ -660,14 +641,22 @@ tooltipps=$(grep -e '@T: *Tooltipps' ${article})
 if [ "${tooltipps}" ]; then
     trailer=$(grep -e '@V: *$' ${article})
     author=$(grep -e '@A: *$' ${article})
-    # DEPRECATED after
-    # https://github.com/SlurmMcKenzie/lm_post_production/commit/9a6dc7ceeff1eb55e69afc4eec8d9ac52025a55b
-    # find out line number of alone standing pic
-    # single_pic=$(grep -n -A2 '@BI' ${article} | grep '@KT' | tail -n1 | cut -d "-" -f1)
-    
-    # Make first picture a titel picture by replacing @BI with @BA
-    sed -i '0,/@BI:/s//@BA:/' ${article}
 
+    #find out line number of alone standing pic
+	single_pic=$(grep -n -A2 '@BI' ${article} | grep '@KT' | tail -n1 | cut -d "-" -f1)
+        if [ "${single_pic}" ]; then
+            single_pic_position=$((${single_pic}-2))
+
+            #find out box with lacking pic
+            box=$(grep -n -B3 '@KE' ${article} | grep -n '@KL' | cut -d ":" -f2 | grep -o '[0-9]*')
+            box_insert=$((${box}+2))
+
+            # insert pic in box
+            pic=$(sed -n "${single_pic_position}"'p' ${article})
+            sed -i ''"${box_insert}"'i'"${pic}"'' ${article}
+            single_pic_position=$((${single_pic_position}+1))
+            sed -i "${single_pic_position}"'d' ${article}
+        fi
     if [ "${trailer}" ]; then
         for i in $(grep -n '^@KT: *.*$' ${article} | cut -d ":" -f 1); do
             # Show text following @KT:
@@ -683,12 +672,11 @@ if [ "${tooltipps}" ]; then
         sed -i 's/\@A: *.*$/\@A:Uwe Vollbracht/g' ${article}
     fi
     # remove wrong tagged @BA-picture
-    # DEPRECATED after
-    # https://github.com/SlurmMcKenzie/lm_post_production/commit/9a6dc7ceeff1eb55e69afc4eec8d9ac52025a55b
-    # sed -i '/@BA: *.*$/d' ${article}
-
+    sed -i '/@BA: *.*$/d' ${article}
     # replace @KT: with @ZKT:
     sed -i 's/@KT:/@ZKT:/g' ${article}
+    # replace all BI-Tags except one
+    #sed -i '/Visual_Tooltipps/!s/@BI:/@C:/g' ${article}
 fi
 }
 
@@ -1047,6 +1035,7 @@ convert_to_utf8
 
 # this module removes "Heft-DVD" boxes that make no sense online
 mod_warnings
+mod_kaleidoskop
 mod_remove_duplicate
 mod_insecurity_pic
 mod_remove_ads
