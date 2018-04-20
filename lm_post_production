@@ -303,6 +303,23 @@ if [ "${and_in_intro}" ]; then
 fi
 }
 
+## Module: ADAPT TO NEW INTRODUCED KALEIDOSKOP FORMAT
+function mod_kaleidoskop {
+
+kaleidoskop=$(grep -e '@SW: *Kaleidoskop' ${article})
+
+if [ "${kaleidoskop}" ] ; then
+	# Uncomment 'Linux-Magazin:' questions and make it all bold with <B>
+	sed -i 's/^@#: *<I> *Linux-Magazin: *<I>\( .*$\)/@L:<B>Linux-Magazin:\1<B>/' ${article}
+	
+	# Only make <B>Linux-Magazin:<B> bold (not in use)	
+	# sed -i 's/^@#: *<I> *Linux-Magazin: *<I>/@L:<B>Linux-Magazin:<B>/' ${article}
+
+	# Replace <I> with <B> in answers
+	sed -i 's/\@L:<I>\( *.*\)<I>/\@L:<B>\1<B>/' ${article}
+fi
+}
+
 
 ##  Module: REMOVE ALL COMMENTS EXCEPT THE ONE WITH ID ##
 function mod_repair_comments {
@@ -1047,6 +1064,7 @@ convert_to_utf8
 
 # this module removes "Heft-DVD" boxes that make no sense online
 mod_warnings
+mod_kaleidoskop
 mod_remove_duplicate
 mod_insecurity_pic
 mod_remove_ads
