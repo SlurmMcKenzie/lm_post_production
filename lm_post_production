@@ -43,6 +43,15 @@ fi
 trap 'rm -rf /tmp/lm_post_production.lock' EXIT
 }
 
+## CHECK PERMISSIONS FOR ARTICLE.TXT
+function checkperms
+{
+wrong_fileperms=$(stat ${article} | grep '0444' 2>&1 &)
+	if [[ "${wrong_fileperms}" ]]; then
+		echo "Die Datei 'article.txt' ist nur lesbar, korrigiere Dateirechte."
+		chmod 754 ${article}
+	fi
+}
 
 ## BACKUP ARTICLES BEFORE CHANGING ANYTHING ##
 function backup
@@ -1058,7 +1067,13 @@ function repair_article {
 
 echo -e "\nNächster Artikel:"${folder}
 echo -e "================================"
+
+# backup original folder with exported 'article.txt' for later corrections and debugging
 backup
+
+# check if article.txt is writeable (0754)
+checkperms
+
 # convert to UTF-8
 convert_to_utf8
 
