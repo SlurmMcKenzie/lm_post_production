@@ -54,7 +54,6 @@ for folder in $(ls -d [[:digit:]]*); do
                     blockmarkt=$(grep '^@SW: *Profimarkt' ${article} 2>&1 &)
                     blockinser=$(grep '^@SW: *Inserenten' ${article} 2>&1 &)
                     blockvorschau=$(grep '^@SW: *Vorschau [0-9]' ${article} 2>&1 &)
-		    wrong_fileperms=$(stat ${article} | grep '0444' ${article} 2>&1 &)
 
                     check_footnote_start=$(grep '^@IT: *Infos' ${article} 2>&1 &)
                     articleend=$(tail -5 ${article} 2>&1 | grep '<I>.*<I>' 2>&1 &)
@@ -62,10 +61,6 @@ for folder in $(ls -d [[:digit:]]*); do
                         #read -p "Womöglich fehlt in "${folder}" das Ende. Autor und letzte fünf Zeilen anzeigen? [j/n]" showend
                         echo "Womöglich fehlt in "${folder}" das Ende."
                     fi
-		    if [ "${wrong_fileperms}" ]
-			echo "Die 'article.txt' in "${folder}" hat vermutlich nur Leserechte:"
-			stat ${article} | grep 'Access: ('
-		    fi
             fi
 done
 }
@@ -81,6 +76,13 @@ function check {
 				occurence=$(grep '^@#: *ID: *[0-9]' ${article} 2>&1 &)
 
 				if [[ -f ${article} ]]; then
+					wrong_fileperms=$(stat ${article} | grep '0444' 2>&1 &)
+
+					if [[ "${wrong_fileperms}" ]]; then
+						echo "Die 'article.txt' in "${folder}" hat vermutlich nur Leserechte:"
+						stat ${article} | grep 'Access: ('
+		    			fi
+	
 					if [[ -n "${occurence}" ]]; then
 						continue
 					else
@@ -89,6 +91,8 @@ function check {
 						echo -e "Die ID fehlt im Artikel:" ${rot}${folder}${reset}
 						missingtoo=true
 					fi
+					
+					
 				else
 					rot=$(tput setaf 1)
 					reset=$(tput sgr0)
