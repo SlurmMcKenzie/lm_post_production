@@ -76,7 +76,7 @@ function check {
 				occurence=$(grep '^@#: *ID: *[0-9]' ${article} 2>&1 &)
 
 				if [[ -f ${article} ]]; then
-					wrong_fileperms=$(stat ${article} | grep '0444' 2>&1 &)
+					wrong_fileperms=$(stat ${article} | grep '0444' 2>&1)
 
 					if [[ "${wrong_fileperms}" ]]; then
 						echo "Die 'article.txt' in "${folder}" hat vermutlich nur Leserechte:"

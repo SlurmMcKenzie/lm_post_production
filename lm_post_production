@@ -46,7 +46,7 @@ trap 'rm -rf /tmp/lm_post_production.lock' EXIT
 ## CHECK PERMISSIONS FOR ARTICLE.TXT
 function checkperms
 {
-wrong_fileperms=$(stat ${article} | grep '0444' 2>&1 &)
+wrong_fileperms=$(stat ${article} | grep '0444' 2>&1)
 	if [[ "${wrong_fileperms}" ]]; then
 		chmod 754 ${article}
 	fi
