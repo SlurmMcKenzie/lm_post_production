@@ -48,7 +48,6 @@ function checkperms
 {
 wrong_fileperms=$(stat ${article} | grep '0444' 2>&1 &)
 	if [[ "${wrong_fileperms}" ]]; then
-		echo "Die Datei 'article.txt' ist nur lesbar, korrigiere Dateirechte."
 		chmod 754 ${article}
 	fi
 }
@@ -549,11 +548,23 @@ infobox=$(grep -c '^@IT:.*Info' ${article})
 new_infobox=$(grep -c '^@B:.*Info' ${article})
 
     if [ "${books}" ] && [ "${infobox}" == 2 ]; then
+
+	# get resized titlepic	
+	cd images
+	cp /opt/lnm/bin/Visual_Buecher_2018.png .
+    	cd ..
+	
 	sed -i '0,/@BI:/s//@BA:/' ${article}
         sed -i '0,/IT\:.*fo$/s//KT:Info 1/; /IT\:.*fo$/s//KT:Info 2/' ${article}
         sed -i 's/@IL:/@KL:/g' ${article}
     
     elif [ "${books}" ] && [ "${new_infobox}" == 2 ]; then
+
+	# get resized titlepic
+	cd images
+	cp /opt/lnm/bin/Visual_Buecher_2018.png .
+    	cd ..
+
 	sed -i '0,/@BI:/s//@BA:/' ${article}
         sed -i '0,/B\:.*fo$/s//KT:Info 1/; /B\:.*fo$/s//KT:Info 2/' ${article}
         sed -i 's/@B:/@KL:/g' ${article}
@@ -614,10 +625,6 @@ c_in_group_headlines=$(grep -e "@ZTA:.*<C>.*$" ${article})
 ## Module: FILL OUT HEADER LINE IN LETTERS TO THE EDITOR ##
 function mod_prepare_ed_letter {
 
-cd images
-cp /opt/lnm/bin/Visual_Leserbriefe.png .
-cd ..
-
 stdvorspann="Haben Sie Anregungen, Statements oder Kommentare? Dann schreiben Sie an [redaktion@linux-magazin.de]. Die Redaktion behält es sich vor, die Zuschriften und Leserbriefe zu kürzen. Sie veröffentlicht alle Beiträge mit Namen, sofern der Autor nicht ausdrücklich Anonymität wünscht."
 
 leserbriefe=$(grep -e '@SW:*Leserbriefe' ${article})
@@ -625,6 +632,10 @@ dachzeile=$(grep -e '@D: *$' ${article})
 vorspann=$(grep -e '@V: *$' ${article})
 
 if [ "${leserbriefe}" ] && [ "${dachzeile}" ] && [ "${vorspann}" ]; then
+
+    cd images
+    cp /opt/lnm/bin/Visual_Leserbriefe.png .
+    cd ..
 
     sed -i 's/@D:/@D:Auf den Punkt gebracht/g' ${article}
     sed -i 's/@T:/@T:Leserbriefe/g' ${article}
@@ -684,6 +695,11 @@ function mod_prepare_tooltipps {
 tooltipps=$(grep -e '@T: *Tooltipps' ${article})
 
 if [ "${tooltipps}" ]; then
+
+    cd images
+    cp /opt/lnm/bin/Visual_Tooltipps_2018.png .
+    cd ..
+
     trailer=$(grep -e '@V: *$' ${article})
     author=$(grep -e '@A: *$' ${article})
     # DEPRECATED after
